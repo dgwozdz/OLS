@@ -1,17 +1,47 @@
+#====================================================================#
+# Author:             Damian Gwozdz (DG)
+# Function:           ols
+# Creation date:      15JUN2017
+# Last modified:      28AUG201
+# Description:        Function to build multiple Ordinary
+#                     Least Squares models in a parallelized way
+# Required functions: ols
+#
+#====================================================================#
+
 ols_summary <- function(dset.sum, target.sum, vars.sum, alpha.sum = .05,
                         intercept.sum = T, do.parallel = F, n.cores = 2,
                         visualize.sum = F){
   
+  #====================================================================
+  # PARAMETERS:
+  #
+  # 1) dset.sum - input data set
+  # 2) target.sum - vector of target variables declared as strings
+  # 3) vars.sum - vector of independent variables declared as strings
+  #               and separated by blanks in each string
+  # 4) alpha.sum - significance level
+  # 5) intercept.sum - a boolean value indicating whether the built model
+  #               should have an intercept
+  # 6) do.parallel - a boolean value indicating whether parallelization
+  #               should be used
+  # 7) n.cores - number of utilized cores (active only if do.parallel == T)
+  # 6) visualize.sum  - a boolean value indicating whether the built model
+  #               should be visualized [CURRENTLY INACTIVE]
+  #====================================================================
+  
   # Parameters
-  dset.sum <- iris
-  target.sum <- rep("Sepal.Length", 3)
-  vars.sum <- c("Sepal.Width Petal.Length Petal.Width", "Petal.Length Petal.Width",
-                "Sepal.Width Petal.Width")
-  alpha.sum <- .05
-  intercept.sum <- T
-  do.parallel <- F
-  visualize.sum <- F
-  n.cores <- 2
+  # dset.sum <- iris
+  # target.sum <- rep("Sepal.Length", 3)
+  # vars.sum <- c("Sepal.Width Petal.Length Petal.Width", "Petal.Length Petal.Width",
+  #               "Sepal.Width Petal.Width")
+  # alpha.sum <- .05
+  # intercept.sum <- T
+  # do.parallel <- F
+  # visualize.sum <- F
+  # n.cores <- 2
+  
+  
   #
   num.models <- length(vars.sum)
   num.NA <- rep(NA, num.models)
@@ -64,4 +94,4 @@ ols_summary <- function(dset.sum, target.sum, vars.sum, alpha.sum = .05,
   }
 }
 
-seq_len(num.models)
+# seq_len(num.models)

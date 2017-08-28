@@ -1,3 +1,21 @@
+#====================================================================#
+# Author:             Damian Gwozdz (DG)
+# Function:           ols
+# Creation date:      15JUN2017
+# Last modified:      28AUG201
+# Description:        Function to build an Ordinary
+#                     Least Squares models and test it
+# Required functions: -
+#
+#   Utilized tests:
+#     1) Breusch-Pagan (heteroscedasticity)
+#     2) Breusch-Godfrey (serial autocorrelation)
+#     3) RESET
+#     4) Anderson-Darling (normality of error distribution)
+#     5) Shapiro-Wilk (normality of error distribution)
+#
+#====================================================================#
+
 library(lmtest)
 # install.packages("nortest")
 library(nortest) # Anderson-Darling test
@@ -7,13 +25,27 @@ library(caret) # RMSE
 
 ols <- function(dset, target, vars, alpha = .05, intercept = T, visualize = F){
   
+  #====================================================================
+  # PARAMETERS:
+  #
+  # 1)  dset - input data set
+  # 2)  target - target variable declared as a string
+  # 3)  vars - indepependent variables declared as a string
+  #             with blanks as separators
+  # 4)  alpha - significance level
+  # 5)  intercept - a boolean value indicating whether the built model
+  #               should have an intercept
+  # 6)  visualize  - a boolean value indicating whether the uilt model
+  #               should be visualized [CURRENTLY INACTIVE]
+  #====================================================================
+  
   # parameters
-  dset <- iris
-  target <- "Sepal.Length"
-  vars <- "Sepal.Width Petal.Length Petal.Width"
-  alpha <- .05
-  intercept <- T
-  visualize <- T
+  # dset <- iris
+  # target <- "Sepal.Length"
+  # vars <- "Sepal.Width Petal.Length Petal.Width"
+  # alpha <- .05
+  # intercept <- T
+  # visualize <- T
   
   vars.split <- unlist(strsplit(vars, " "))
   
