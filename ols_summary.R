@@ -8,6 +8,8 @@
 # Required functions: ols
 #
 #====================================================================#
+rm(list = ls())
+source("ols.r")
 
 ols_summary <- function(dset.sum, target.sum, vars.sum, alpha.sum = .05,
                         intercept.sum = T, do.parallel = F, n.cores = 2,
@@ -40,7 +42,7 @@ ols_summary <- function(dset.sum, target.sum, vars.sum, alpha.sum = .05,
   # do.parallel <- F
   # visualize.sum <- F
   # n.cores <- 2
-  
+
   
   #
   num.models <- length(vars.sum)
@@ -58,7 +60,7 @@ ols_summary <- function(dset.sum, target.sum, vars.sum, alpha.sum = .05,
                             tests = num.NA, equation = num.NA)
   model.vars <- vector(mode = "list", length = num.models)
   
-  if(do.parallel = F){
+  if(do.parallel == F){
     for(i in 1:length(vars.sum)){
       ols.i <- ols(dset = dset.sum,
                    target = target.sum[i],
@@ -79,8 +81,9 @@ ols_summary <- function(dset.sum, target.sum, vars.sum, alpha.sum = .05,
     clusterEvalQ(cl, library("car"))
     clusterExport(cl = cl, c("ols", "dset.sum", "target.sum",
                                 "vars.sum", "intercept.sum",
-                                "alpha.sum", "visualize.sum",
-                             "dset", "ols.formula"), envir = .GlobalEnv)
+                                "alpha.sum", "visualize.sum"),
+                  envir = .GlobalEnv)
+    # clusterExport(cl = cl, c("dset", "ols.formula"),envir = environment())
     models <- parLapply(cl = cl, X = seq_len(num.models),
               function(i) ols(dset = dset.sum, 
                            target = target.sum[i],
@@ -88,10 +91,20 @@ ols_summary <- function(dset.sum, target.sum, vars.sum, alpha.sum = .05,
                            alpha = alpha.sum,
                            intercept = intercept.sum,
                            visualize = visualize.sum)
-              
               )
     stopCluster(cl) 
   }
+  return(list(model.stats, model.vars))
 }
 
 # seq_len(num.models)
+all <- ols_summary(dset.sum = iris,
+            target.sum = rep("Sepal.Length", 3),
+            vars.sum = c("Sepal.Width Petal.Length Petal.Width",
+                          "Petal.Length Petal.Width",
+                          "Sepal.Width Petal.Width"),
+            alpha.sum = .05,
+            intercept.sum = T,
+            do.parallel = T,
+            visualize.sum = F,
+            n.cores = 2)

@@ -39,7 +39,7 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T, visualize = F){
   #               should be visualized [CURRENTLY INACTIVE]
   #====================================================================
   
-  # parameters
+  ## parameters
   # dset <- iris
   # target <- "Sepal.Length"
   # vars <- "Sepal.Width Petal.Length Petal.Width"
@@ -52,7 +52,8 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T, visualize = F){
   nvars <- if(intercept == T){length(vars.split)+1}else{length(vars.split)}
   
   dset <- dset[,c(target, vars.split)]
-  ols.formula <- paste0(target, "~", gsub(" ", "+", vars), if(intercept == T){""}else{"-1"})
+  intercept.string <- if(intercept == T){""}else{"-1"}
+  ols.formula <- as.formula(paste0(target, "~", gsub(" ", "+", vars), intercept.string))
   model.original <- lm(formula = ols.formula, data = dset)
   model <- summary(model.original)
   
@@ -129,8 +130,8 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T, visualize = F){
 # visualize <- T
 
 
-model <- ols(dset = iris,
-    target = "Sepal.Length",
-    vars = "Sepal.Width Petal.Length Petal.Width")
-
-length(model[["stats"]])
+# model <- ols(dset = iris,
+#     target = "Sepal.Length",
+#     vars = "Sepal.Width Petal.Length Petal.Width")
+# 
+# length(model[["stats"]])
