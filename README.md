@@ -18,6 +18,6 @@ Main function: ols_summary (builds multiple OLS models in a parallelized way).
 6) visualize.sum  - a boolean value indicating whether the built model
               should be visualized [CURRENTLY INACTIVE]
               
-### USAGE EXAMPLE:
+### EXAMPLE:
 
 -
