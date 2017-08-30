@@ -2,12 +2,13 @@
 # Author:             Damian Gwozdz (DG)
 # Function:           ols
 # Creation date:      15JUN2017
-# Last modified:      28AUG201
+# Last modified:      30AUG201
 # Description:        Function to build multiple Ordinary
 #                     Least Squares models in a parallelized way
 # Required functions: ols
 #
 #====================================================================#
+
 rm(list = ls())
 source("ols.r")
 
@@ -60,6 +61,8 @@ ols_summary <- function(dset.sum, target.sum, vars.sum, alpha.sum = .05,
                             tests = num.NA, equation = num.NA)
   model.vars <- vector(mode = "list", length = num.models)
   
+  
+  # Non-parallelized version
   if(do.parallel == F){
     for(i in 1:length(vars.sum)){
       ols.i <- ols(dset = dset.sum,
@@ -70,7 +73,10 @@ ols_summary <- function(dset.sum, target.sum, vars.sum, alpha.sum = .05,
                   visualize = visualize.sum)
       model.stats[i,] <- ols.i[["stats"]]
       model.vars[[i]] <- ols.i[["var.stats"]]
+      models <- list(model.stats, model.vars)
     }
+    
+  # Parallelized version
   }else{
     library(parallel)
     cores <- n.cores
@@ -79,11 +85,11 @@ ols_summary <- function(dset.sum, target.sum, vars.sum, alpha.sum = .05,
     clusterEvalQ(cl, library("lmtest"))
     clusterEvalQ(cl, library("nortest"))
     clusterEvalQ(cl, library("car"))
-    clusterExport(cl = cl, c("ols", "dset.sum", "target.sum",
-                                "vars.sum", "intercept.sum",
-                                "alpha.sum", "visualize.sum"),
-                  envir = .GlobalEnv)
-    # clusterExport(cl = cl, c("dset", "ols.formula"),envir = environment())
+    clusterExport(cl = cl,
+                  varlist = c("ols",
+                              "dset.sum", "vars.sum", "target.sum",
+                              "alpha.sum", "intercept.sum", "visualize.sum"),
+                  envir = environment())
     models <- parLapply(cl = cl, X = seq_len(num.models),
               function(i) ols(dset = dset.sum, 
                            target = target.sum[i],
@@ -94,10 +100,11 @@ ols_summary <- function(dset.sum, target.sum, vars.sum, alpha.sum = .05,
               )
     stopCluster(cl) 
   }
-  return(list(model.stats, model.vars))
+  return(models)
 }
 
 # seq_len(num.models)
+system.time(
 all <- ols_summary(dset.sum = iris,
             target.sum = rep("Sepal.Length", 3),
             vars.sum = c("Sepal.Width Petal.Length Petal.Width",
@@ -107,4 +114,5 @@ all <- ols_summary(dset.sum = iris,
             intercept.sum = T,
             do.parallel = T,
             visualize.sum = F,
-            n.cores = 2)
+            n.cores = 2))
+all[[2]]$stats
