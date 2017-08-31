@@ -11,6 +11,7 @@
 
 rm(list = ls())
 source("ols.r")
+source("ncomb.r")
 
 ols_summary <- function(dset.sum, target.sum, vars.sum, alpha.sum = .05,
                         intercept.sum = T, do.parallel = F, n.cores = 2,
@@ -104,15 +105,25 @@ ols_summary <- function(dset.sum, target.sum, vars.sum, alpha.sum = .05,
 }
 
 # seq_len(num.models)
-system.time(
-all <- ols_summary(dset.sum = iris,
-            target.sum = rep("Sepal.Length", 3),
-            vars.sum = c("Sepal.Width Petal.Length Petal.Width",
-                          "Petal.Length Petal.Width",
-                          "Sepal.Width Petal.Width"),
-            alpha.sum = .05,
-            intercept.sum = T,
-            do.parallel = T,
-            visualize.sum = F,
-            n.cores = 2))
-all[[2]]$stats
+
+# target.all <- rep("Sepal.Length", 
+#                   length(
+#                     ncomb(vec = c('Sepal.Width', 'Petal.Length'),
+#                           m = 1,
+#                           n = 3,
+#                           max.lag = 0)
+#                   ))
+# vars.all <- ncomb(vec = c('Sepal.Width', 'Petal.Length'),
+#                   m = 1,
+#                   n = 3,
+#                   max.lag = 0)
+# 
+# system.time(
+# all <- ols_summary(dset.sum = iris,
+#             target.sum = target.all,
+#             vars.sum = vars.all,
+#             alpha.sum = .05,
+#             intercept.sum = T,
+#             do.parallel = F,
+#             visualize.sum = F,
+#             n.cores = 2))
