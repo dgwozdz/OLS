@@ -15,25 +15,22 @@ ui <- fluidPage(
     helpText("This application creates an Ordinary Least Squares (OLS) model
              for declared dependent and independent variables from iris dataset.
              The model is tested by multiple statistical tests. Additionally,
-             a visualization of predicted vs. observed vaues is created.",
+             a visualization of predicted vs. observed values is created.",
              br(),
              br(),
              "Explanations:",
              tags$ul(
-               tags$li(strong("tests:"), "does model complies with all the proposed
+               tags$li(strong("tests:"), "does model comply with all the proposed
                        tests?"),
                tags$li(strong("F:"),"F test for siginificance of all variables"), 
                tags$li(strong("bp:"), "Breusch-Pagan test for homoscedasticity"), 
-               tags$li(strong("bg:"), "Breusch-Godfrey test for autocorellation"),
-               tags$li(strong("F:"), "F test for siginificance of all variables"), 
-               tags$li(strong("RESET:"), "RESET testing whether the linear model
-                        function is correct"),
+               tags$li(strong("bg:"), "Breusch-Godfrey test for autocorellation"), 
+               tags$li(strong("RESET:"), "RESET test checking whether the
+                        linear model function is correct"),
                tags$li(strong("ad:"), "Adnderson-Darling test for normal
                         distribution of error term"),
-               tags$li(strong("sw:"), "Shapiro-Wilk test for normal distribution
-                       of error term"),
-               tags$li(strong("VIF:"), "Variance Iflation Factor"),
-               tags$li(strong("max.vif:"), "maximum VIF in the model"),
+               tags$li(strong("VIF:"), "Variance Inflation Factor"),
+               tags$li(strong("max.vif:"), "Maximum VIF in the model"),
                
                tags$li(strong("sw:"), "Shapiro-Wilk test for normal distribution
                        of error term")
@@ -47,7 +44,7 @@ ui <- fluidPage(
                        value = "Sepal.Length")),
       column(7,
              textInput("independent.vars", h3("Independent variables:"),
-                       value = "Sepal.Width"))
+                       value = "Sepal.Width Petal.Length"))
     ),
     plotOutput("plot"),
     h3("Model statistics"),
