@@ -2,7 +2,7 @@
 # Author:             Damian Gwozdz (DG)
 # Function:           ols
 # Creation date:      15JUN2017
-# Last modified:      28AUG201
+# Last modified:      03SEP2017
 # Description:        Function to build an Ordinary
 #                     Least Squares models and test it
 # Required functions: -
@@ -14,6 +14,9 @@
 #     4) Anderson-Darling (normality of error distribution)
 #     5) Shapiro-Wilk (normality of error distribution)
 #
+#   Visualizations:
+#     1) Predicted vs. Observed
+#
 #====================================================================#
 
 library(lmtest)
@@ -21,9 +24,11 @@ library(lmtest)
 library(nortest) # Anderson-Darling test
 library(car) # VIF
 library(caret) # RMSE
+library(scales) # percent() function
 
 
-ols <- function(dset, target, vars, alpha = .05, intercept = T, visualize = F){
+ols <- function(dset, target, vars, alpha = .05, intercept = T,
+                visualize = F){
   
   #====================================================================
   # PARAMETERS:
@@ -35,8 +40,8 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T, visualize = F){
   # 4)  alpha - significance level
   # 5)  intercept - a boolean value indicating whether the built model
   #               should have an intercept
-  # 6)  visualize  - a boolean value indicating whether the uilt model
-  #               should be visualized [CURRENTLY INACTIVE]
+  # 6)  visualize  - a boolean value indicating whether the built model
+  #               should be visualized (plot: predicted vs. observed)
   #====================================================================
   
   ## parameters
@@ -116,22 +121,26 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T, visualize = F){
                            model.stats$sw.p.value<alpha)T else F
   model.stats$equation <- paste0(paste0(as.character(model.vars$var), sep = "*"),
                                  paste0("(", model.vars$coef , ")"), collapse = "+")
+  
+  if(visualize == T){
+    dset$predicted <- predict(model.original, dset)
+    print(
+      ggplot(dset, aes_string(x="predicted", y=target)) +
+        geom_point(shape=19, color = "purple") +
+        xlab("Predicted") +
+        ylab("Observed") +
+        ggtitle(paste0(target, ": Predicted vs. Observed, Adj. R2=",
+                       percent(model.stats$adjusted.R2))) +
+        theme_minimal()
+    )
+    
+  }
+  
   return(list(stats = model.stats, var.stats = model.vars))
 }
-
-# test
-
-# parameters
-# dset <- iris
-# target <- "Sepal.Length"
-# vars <- "Sepal.Width Petal.Length Petal.Width"
-# alpha <- .05
-# intercept <- T
-# visualize <- T
 
 
 # model <- ols(dset = iris,
 #     target = "Sepal.Length",
-#     vars = "Sepal.Width Petal.Length Petal.Width")
-# 
-# length(model[["stats"]])
+#     vars = "Sepal.Width Petal.Length Petal.Width",
+#     visualize = T)
