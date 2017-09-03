@@ -47,7 +47,7 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
   ## parameters
   # dset <- iris
   # target <- "Sepal.Length"
-  # vars <- "Sepal.Width Petal.Length Petal.Width"
+  # vars <- "Sepal.Width Petal.Width"
   # alpha <- .05
   # intercept <- T
   # visualize <- T
@@ -108,9 +108,19 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
                            coef = model$coefficients[,"Estimate"],
                            p.value = model$coefficients[,4], vif = rep(NA, nvars))
   
-  vifs <- vif(model.original)
-  if(intercept == T){model.vars$vif <- c(NA, vifs)}else
-  {model.vars$vif <- vifs}
+  if(length(vars.split) == 1){
+    if(intercept == T){
+      model.vars$vif <- c(rep(NA, 2))
+    }else{
+      model.vars$vif <- NA
+    }
+  }else{
+    if(intercept == T){
+      model.vars$vif <- c(NA, vif(model.original))
+    }else{
+      model.vars$vif <- vif(model.original)
+    }
+  }
   
   model.stats$max.vif <- if(length(vars.split) == 1)NA else max(model.vars$vif, na.rm = T)
   
@@ -124,23 +134,22 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
   
   if(visualize == T){
     dset$predicted <- predict(model.original, dset)
-    print(
-      ggplot(dset, aes_string(x="predicted", y=target)) +
-        geom_point(shape=19, color = "purple") +
-        xlab("Predicted") +
-        ylab("Observed") +
-        ggtitle(paste0(target, ": Predicted vs. Observed, Adj. R2=",
-                       percent(model.stats$adjusted.R2))) +
-        theme_minimal()
-    )
-    
+    model.plot <- ggplot(dset, aes_string(x="predicted", y=target)) +
+      geom_point(shape=19, color = "purple") +
+      xlab("Predicted") +
+      ylab("Observed") +
+      ggtitle(paste0(target, ": Predicted vs. Observed, Adj. R2=",
+                     percent(model.stats$adjusted.R2))) +
+      theme_minimal()
+    # print(model.plot)
   }
   
-  return(list(stats = model.stats, var.stats = model.vars))
+  return(list(stats = model.stats, var.stats = model.vars, plot = model.plot))
 }
 
 
 # model <- ols(dset = iris,
 #     target = "Sepal.Length",
-#     vars = "Sepal.Width Petal.Length Petal.Width",
+#     vars = "Sepal.Width",
 #     visualize = T)
+# model[["plot"]]
