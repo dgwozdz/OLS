@@ -7,9 +7,10 @@
 # Required functions: ols
 #
 #====================================================================#
+source("ols.R")
 
 ui <- fluidPage(
-  titlePanel("Ordinary Least Squares Models in iris dataset"),
+  titlePanel("Ordinary Least Squares Models in iris data set"),
   sidebarPanel(
     helpText("This application creates an Ordinary Least Squares (OLS) model
              for declared dependent and independent variables from iris dataset.
