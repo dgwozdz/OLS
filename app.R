@@ -66,7 +66,7 @@ server <- function(input, output){
       dset = iris,
       target = input$target.var,
       vars = input$independent.vars,
-      visualize = F
+      visualize = T
     )
     model.stats <- model[["stats"]]
     model.vars.stats <- model[["var.stats"]]
