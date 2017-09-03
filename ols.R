@@ -138,7 +138,7 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
       geom_point(shape=19, color = "purple") +
       xlab("Predicted") +
       ylab("Observed") +
-      ggtitle(paste0(target, ": Predicted vs. Observed, Adj. R2=",
+      ggtitle(paste0(target, ": Predicted vs Observed, Adj. R2=",
                      percent(model.stats$adjusted.R2))) +
       theme_minimal()
     # print(model.plot)
