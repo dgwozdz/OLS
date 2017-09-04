@@ -158,8 +158,8 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
 }
 
 
-model <- ols(dset = iris,
-    target = "Sepal.Length",
-    vars = "Sepal.Width",
-    visualize = T, output.residuals = T)
+# model <- ols(dset = iris,
+#     target = "Sepal.Length",
+#     vars = "Sepal.Width",
+#     visualize = T, output.residuals = T)
 # model[["plot"]]
