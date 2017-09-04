@@ -25,10 +25,11 @@ library(nortest) # Anderson-Darling test
 library(car) # VIF
 library(caret) # RMSE
 library(scales) # percent() function
+library(plotly)
 
 
 ols <- function(dset, target, vars, alpha = .05, intercept = T,
-                visualize = F){
+                visualize = F, output.residuals = F){
   
   #====================================================================
   # PARAMETERS:
@@ -42,6 +43,8 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
   #               should have an intercept
   # 6)  visualize  - a boolean value indicating whether the built model
   #               should be visualized (plot: predicted vs. observed)
+  # 7)  output.residuals  - a boolean value indicating whether the error
+  #                   term should be saved
   #====================================================================
   
   ## parameters
@@ -51,6 +54,7 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
   # alpha <- .05
   # intercept <- T
   # visualize <- T
+  # output.errors <- T
   
   vars.split <- unlist(strsplit(vars, " "))
   
@@ -69,8 +73,8 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
                             bp.stat = NA, bp.p.value = NA, bg.stat = NA,
                             bg.p.value = NA, reset.stat = NA,
                             reset.p.value = NA, ad.stat = NA, ad.p.value = NA,
-                            sw.stat = NA, sw.p.value = NA, max.vif = NA, tests = NA,
-                            equation = NA)
+                            sw.stat = NA, sw.p.value = NA, max.vif = NA,
+                            tests = NA, n = NA, equation = NA)
   model.stats$target <- target
   model.stats$vars <- vars
   model.stats$R2 <- model$r.squared
@@ -129,6 +133,7 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
                            model.stats$reset.p.value<alpha &
                            model.stats$ad.p.value<alpha &
                            model.stats$sw.p.value<alpha)T else F
+  model.stats$n <- nrow(dset)
   model.stats$equation <- paste0(paste0(as.character(model.vars$var), sep = "*"),
                                  paste0("(", model.vars$coef , ")"), collapse = "+")
   
@@ -144,12 +149,17 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
     # print(model.plot)
   }
   
-  return(list(stats = model.stats, var.stats = model.vars, plot = model.plot))
+  if(output.residuals == T){
+    model.errors <- model$residuals
+  }
+  
+  return(list(stats = model.stats, var.stats = model.vars, plot = model.plot,
+              output.residuals = model$residuals))
 }
 
 
-# model <- ols(dset = iris,
-#     target = "Sepal.Length",
-#     vars = "Sepal.Width",
-#     visualize = T)
+model <- ols(dset = iris,
+    target = "Sepal.Length",
+    vars = "Sepal.Width",
+    visualize = T, output.residuals = T)
 # model[["plot"]]

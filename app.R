@@ -7,6 +7,7 @@
 # Required functions: ols
 #
 #====================================================================#
+library(shiny)
 source("ols.R")
 
 ui <- fluidPage(
@@ -18,7 +19,11 @@ ui <- fluidPage(
              a visualization of predicted vs. observed values is created.",
              br(),
              br(),
-             "Explanations:",
+             strong("Variables in 'Independent Variables' section should 
+                    be separated by spaces."),
+             br(),
+             br(),
+             "Explanations of acronyms:",
              tags$ul(
                tags$li(strong("tests:"), "does model comply with all the proposed
                        tests?"),
@@ -31,53 +36,92 @@ ui <- fluidPage(
                         distribution of error term"),
                tags$li(strong("VIF:"), "Variance Inflation Factor"),
                tags$li(strong("max.vif:"), "Maximum VIF in the model"),
-               
                tags$li(strong("sw:"), "Shapiro-Wilk test for normal distribution
-                       of error term")
+                       of error term"),
+               tags$li(strong("n:"), "number of observations in the 
+                       input data set")
              )
         )
     ),
   mainPanel(
-    fluidRow(
-      column(4,
-             textInput("target.var", h3("Target variable:"),
-                       value = "Sepal.Length")),
-      column(7,
-             textInput("independent.vars", h3("Independent variables:"),
-                       value = "Sepal.Width Petal.Length"))
-    ),
-    plotOutput("plot"),
-    h3("Model statistics"),
-    tableOutput("model.stats1"),
-    tableOutput("model.stats2"),
-    tableOutput("model.stats3"),
-    tableOutput("model.stats4"),
-    h3("Variable statistics"),
-    tableOutput("vars.stats")
+        p(strong("Variables to choose from:"), textOutput("possible.variables")),
+        fluidRow(
+          column(4,
+                 textInput("target.var", h3("Input target variable:"),
+                                   value = "Sepal.Length")),
+          column(7,
+                 textInput("independent.vars", h3("Input independent variables:"),
+                           value = "Sepal.Width Petal.Length"))
+        ),
+        plotlyOutput("plot"),
+        plotlyOutput("histogram.residuals"),
+        h3("Model statistics"),
+        tableOutput("model.stats1"),
+        tableOutput("model.stats2"),
+        tableOutput("model.stats3"),
+        tableOutput("model.stats4"),
+        h3("Variable statistics"),
+        tableOutput("vars.stats")
   )
-    )
+)
 
 server <- function(input, output){
+  
+  output$possible.variables <- renderText(names(iris)[sapply(iris, is.numeric)]) 
   model.all <- reactive({
     model <- ols(
       dset = iris,
       target = input$target.var,
       vars = input$independent.vars,
-      visualize = T
+      visualize = T,
+      output.residuals = T
     )
     model.stats <- model[["stats"]]
     model.vars.stats <- model[["var.stats"]]
-    model.plot <- model[["plot"]]
+    model.plot <- ggplotly(model[["plot"]])
+    model.residuals <- model[["output.residuals"]]
     list(stats = model.stats,
          vars.stats = model.vars.stats,
-         plot = model.plot)
+         plot = model.plot,
+         residuals = model.residuals)
   })
-  output$model.stats1 <- renderTable({model.all()[["stats"]][20]})
+  output$model.stats1 <- renderTable({model.all()[["stats"]][21]})
   output$model.stats2 <- renderTable({model.all()[["stats"]][3:10]})
   output$model.stats3 <- renderTable({model.all()[["stats"]][11:15]})
-  output$model.stats4 <- renderTable({model.all()[["stats"]][16:19]})
+  output$model.stats4 <- renderTable({model.all()[["stats"]][16:20]})
   output$vars.stats <- renderTable({model.all()[["vars.stats"]]})
-  output$plot <- renderPlot({model.all()[["plot"]]})
+  output$plot <- renderPlotly({model.all()[["plot"]]})
+  
+  
+  # Evaluate H0 of normality tests for different tests:
+  # - n<30: Shapiro-Wilk
+  # - n>=30: Anderson-Darling
+  
+  normality.test <- reactive(
+    if(model.all()[["stats"]]$n<30){
+      if(model.all()[["stats"]]$sw.p.value<0.05){
+        "distribution other than normal"
+      }else{
+        "normal distribution"
+      }
+    }else{
+      if(model.all()[["stats"]]$ad.p.value<0.05){
+        "distribution other than normal"
+      }else{
+        "normal distribution"
+      }
+    }
+  )
+  
+  output$histogram.residuals <- renderPlotly({
+    ggplot() +
+      geom_histogram(aes(x = model.all()[["residuals"]]),
+                     fill = I("blue"), alpha = I(0.5)) +
+      xlab("") +
+      ggtitle(paste0("Histogram of residuals: ", normality.test())) +
+      theme_minimal()
+  })
+
 }
 
 shinyApp(ui = ui, server = server)
