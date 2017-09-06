@@ -8,7 +8,8 @@
 #
 #====================================================================#
 library(shiny)
-source("ols.R")
+source("ols.R")s
+options(shiny.maxRequestSize=0.05*1024^2)
 
 ui <- fluidPage(
   titlePanel("Ordinary Least Squares Models in iris data set"),
@@ -31,46 +32,90 @@ ui <- fluidPage(
                tags$li(strong("bp:"), "Breusch-Pagan test for homoscedasticity"), 
                tags$li(strong("bg:"), "Breusch-Godfrey test for autocorellation"), 
                tags$li(strong("RESET:"), "RESET test checking whether the
-                        linear model function is correct"),
+                       linear model function is correct"),
                tags$li(strong("ad:"), "Adnderson-Darling test for normal
-                        distribution of error term"),
+                       distribution of error term"),
                tags$li(strong("VIF:"), "Variance Inflation Factor"),
                tags$li(strong("max.vif:"), "Maximum VIF in the model"),
                tags$li(strong("sw:"), "Shapiro-Wilk test for normal distribution
                        of error term"),
                tags$li(strong("n:"), "number of observations in the 
                        input data set")
-             )
-        )
-    ),
+               ),
+             
+             selectInput("histcolour", "Choose histogram colour:",
+                         choices = c("red", "green", "blue", "black",
+                                     "cyan", "violet", "purple", "black",
+                                     "yellow", "grey"), selected = "blue"),
+             sliderInput("hist.bin.slider", "Choose number of bins of histogram:",
+                         min = 1, max = nrow(iris), value = 30, step = 5),
+             sliderInput("alpha.bin.slider", "Choose transaparence:",
+                         min = 0, max = 1, value = 0.7, step = 0.1)
+               )
+             ),
   mainPanel(
-        p(strong("Variables to choose from:"), textOutput("possible.variables")),
-        fluidRow(
-          column(4,
-                 textInput("target.var", h3("Input target variable:"),
-                                   value = "Sepal.Length")),
-          column(7,
-                 textInput("independent.vars", h3("Input independent variables:"),
-                           value = "Sepal.Width Petal.Length"))
-        ),
-        plotlyOutput("plot"),
-        plotlyOutput("histogram.residuals"),
-        h3("Model statistics"),
-        tableOutput("model.stats1"),
-        tableOutput("model.stats2"),
-        tableOutput("model.stats3"),
-        tableOutput("model.stats4"),
-        h3("Variable statistics"),
-        tableOutput("vars.stats")
+    fluidRow(
+      column(5,
+             fileInput('file1', "Input a csv file:"),
+             accept=c('text/csv', 
+                      'text/comma-separated-values,text/plain', 
+                      '.csv'),
+             checkboxInput('header', 'Header', TRUE)),
+      column(3,
+             radioButtons('sep', 'Separator',
+                          c(Comma=',',
+                            Semicolon=';',
+                            Tab='\t'),
+                          ',')
+      ),
+      column(3,
+             radioButtons('quote', 'Quote',
+                          c(None='',
+                            'Double Quote'='"',
+                            'Single Quote'="'"),
+                          '"')
+      )
+    ),
+    p(strong("Variables to choose from:"), textOutput("possible.variables")),
+    fluidRow(
+      column(4,
+             textInput("target.var", h3("Input target variable:"),
+                       value = "Target variable here")),
+      column(8,
+             textInput("independent.vars", h3("Input independent variables:"),
+                       value = "Independent variables separated by blanks here"))
+    ),
+    plotlyOutput("plot"),
+    plotlyOutput("histogram.residuals"),
+    h3("Model statistics"),
+    tableOutput("model.stats1"),
+    tableOutput("model.stats2"),
+    tableOutput("model.stats3"),
+    tableOutput("model.stats4"),
+    h3("Variable statistics"),
+    tableOutput("vars.stats")
   )
 )
 
 server <- function(input, output){
+  dset.in <- reactive({
+    infile <- input$file1
+    if(is.null(infile)){
+      return(NULL)
+    }
+    
+    df <- read.csv(infile$datapath, header = input$header,
+                   sep = input$sep,quote = input$quote)
+    return(df)}
+  )
   
-  output$possible.variables <- renderText(names(iris)[sapply(iris, is.numeric)]) 
+  output$possible.variables <- renderText(
+    names(dset.in())[sapply(dset.in(), is.numeric)]
+  )
+  
   model.all <- reactive({
     model <- ols(
-      dset = iris,
+      dset = dset.in(),
       target = input$target.var,
       vars = input$independent.vars,
       visualize = T,
@@ -116,12 +161,14 @@ server <- function(input, output){
   output$histogram.residuals <- renderPlotly({
     ggplot() +
       geom_histogram(aes(x = model.all()[["residuals"]]),
-                     fill = I("blue"), alpha = I(0.5)) +
+                     fill = I(input$histcolour),
+                     alpha = I(input$alpha.bin.slider),
+                     bins = input$hist.bin.slider) +
       xlab("") +
       ggtitle(paste0("Histogram of residuals: ", normality.test())) +
       theme_minimal()
   })
-
+  
 }
 
 shinyApp(ui = ui, server = server)
