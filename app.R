@@ -18,6 +18,7 @@ ui <- fluidPage(
              for declared dependent and independent variables from iris dataset.
              The model is tested by multiple statistical tests. Additionally,
              a visualization of predicted vs. observed values is created.",
+             strong("Maximum file size was set to 50 kb."),
              br(),
              br(),
              strong("Variables in 'Independent Variables' section should 
