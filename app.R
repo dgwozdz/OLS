@@ -8,7 +8,7 @@
 #
 #====================================================================#
 library(shiny)
-source("ols.R")s
+source("ols.R")
 options(shiny.maxRequestSize=0.05*1024^2)
 
 ui <- fluidPage(
@@ -77,6 +77,7 @@ ui <- fluidPage(
                           '"')
       )
     ),
+    tableOutput("first.two"),
     p(strong("Variables to choose from:"), textOutput("possible.variables")),
     fluidRow(
       column(4,
@@ -86,7 +87,13 @@ ui <- fluidPage(
              textInput("independent.vars", h3("Input independent variables:"),
                        value = "Independent variables separated by blanks here"))
     ),
+    fluidRow(
+      column(4,
+             textInput("time.var", h3("Input time variable:"),
+                       value = "Time variable here"))
+    ),
     plotlyOutput("plot"),
+    plotlyOutput("time.plot"),
     plotlyOutput("histogram.residuals"),
     h3("Model statistics"),
     tableOutput("model.stats1"),
@@ -110,6 +117,8 @@ server <- function(input, output){
     return(df)}
   )
   
+  output$first.two <- renderTable({head(dset.in(), 2)})
+  
   output$possible.variables <- renderText(
     names(dset.in())[sapply(dset.in(), is.numeric)]
   )
@@ -120,16 +129,19 @@ server <- function(input, output){
       target = input$target.var,
       vars = input$independent.vars,
       visualize = T,
-      output.residuals = T
+      output.residuals = T,
+      time.var = input$time.var
     )
     model.stats <- model[["stats"]]
     model.vars.stats <- model[["var.stats"]]
     model.plot <- ggplotly(model[["plot"]])
+    time.plot <- ggplotly(model[["time.plot"]])
     model.residuals <- model[["output.residuals"]]
     list(stats = model.stats,
          vars.stats = model.vars.stats,
          plot = model.plot,
-         residuals = model.residuals)
+         residuals = model.residuals,
+         time.plot = time.plot)
   })
   output$model.stats1 <- renderTable({model.all()[["stats"]][21]})
   output$model.stats2 <- renderTable({model.all()[["stats"]][3:10]})
@@ -137,6 +149,7 @@ server <- function(input, output){
   output$model.stats4 <- renderTable({model.all()[["stats"]][16:20]})
   output$vars.stats <- renderTable({model.all()[["vars.stats"]]})
   output$plot <- renderPlotly({model.all()[["plot"]]})
+  output$time.plot <- renderPlotly({model.all()[["time.plot"]]})
   
   
   # Evaluate H0 of normality tests for different tests:
@@ -169,7 +182,7 @@ server <- function(input, output){
       ggtitle(paste0("Histogram of residuals: ", normality.test())) +
       theme_minimal()
   })
-  
 }
 
 shinyApp(ui = ui, server = server)
+names(EuStockMarkets2)[sapply(EuStockMarkets2, is.numeric)]

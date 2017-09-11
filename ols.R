@@ -13,6 +13,7 @@
 #     3) RESET
 #     4) Anderson-Darling (normality of error distribution)
 #     5) Shapiro-Wilk (normality of error distribution)
+#     6) Chow test (time-series stability)
 #
 #   Visualizations:
 #     1) Predicted vs. Observed
@@ -25,11 +26,16 @@ library(nortest) # Anderson-Darling test
 library(car) # VIF
 library(caret) # RMSE
 library(scales) # percent() function
-library(plotly)
+library(plotly) # interactive predicted vs. observed plot
+# install.packages("strucchange")
+library(strucchange) # chow test
+# install.packages("lubridate")
+library(lubridate)
 
 
 ols <- function(dset, target, vars, alpha = .05, intercept = T,
-                visualize = F, output.residuals = F){
+                visualize = F, output.residuals = F,
+                time.series = F, time.var = NULL){
   
   #====================================================================
   # PARAMETERS:
@@ -45,22 +51,47 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
   #               should be visualized (plot: predicted vs. observed)
   # 7)  output.residuals  - a boolean value indicating whether the error
   #                   term should be saved
+  # 8)  time.series - a boolean value indicating the name of the variable
+  #                 which indicates time
   #====================================================================
   
   ## parameters
   # dset <- iris
   # target <- "Sepal.Length"
   # vars <- "Sepal.Width Petal.Width"
+  # dset <- EuStockMarkets
+  # target <- "DAX"
+  # vars <- "FTSE CAC"
   # alpha <- .05
   # intercept <- T
   # visualize <- T
-  # output.errors <- T
+  # output.residuals <- T
+  # time.series <- F
+  # time.var <- "date"
+  # dset <- EuStockMarkets2
+  
+  # If a ts object is delcared as an input data set, transform it
+  # to a data frame
+  
+  if(sum(class(dset) == "ts")>0){
+    dset <- data.frame(as.matrix(dset),
+                       date=as.yearmon(time(dset)))
+  }else if(length(time.var)>0){
+    dset$date <- date_decimal(dset[,time.var])
+  }else{
+    stop("Declared data set is not an object of class 'ts'")
+  }
   
   vars.split <- unlist(strsplit(vars, " "))
   
   nvars <- if(intercept == T){length(vars.split)+1}else{length(vars.split)}
   
-  dset <- dset[,c(target, vars.split)]
+  if(time.series == T){
+    dset <- dset[,c(target, vars.split, "date")]
+  }else{
+    dset <- dset[,c(target, vars.split, time.var)]
+  }
+  
   intercept.string <- if(intercept == T){""}else{"-1"}
   ols.formula <- as.formula(paste0(target, "~", gsub(" ", "+", vars), intercept.string))
   model.original <- lm(formula = ols.formula, data = dset)
@@ -73,13 +104,15 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
                             bp.stat = NA, bp.p.value = NA, bg.stat = NA,
                             bg.p.value = NA, reset.stat = NA,
                             reset.p.value = NA, ad.stat = NA, ad.p.value = NA,
-                            sw.stat = NA, sw.p.value = NA, max.vif = NA,
+                            sw.stat = NA, sw.p.value = NA,
+                            chow.stat = NA, chow.p.value = NA,
+                            max.vif = NA,
                             tests = NA, n = NA, equation = NA)
   model.stats$target <- target
   model.stats$vars <- vars
   model.stats$R2 <- model$r.squared
   model.stats$adjusted.R2 <- model$adj.r.squared
-  model.stats$RMSE <- RMSE(predict(model.original), dset[[target]])
+  model.stats$RMSE <- RMSE(predict(model.original), dset[, target])
   model.stats$F.stat <- model$fstatistic["value"]
   model.stats$F.p.value <- pf(model$fstatistic[1], model$fstatistic[2],
                               model$fstatistic[3], lower=FALSE)
@@ -105,6 +138,10 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
   shapiro.wilk <- shapiro.test(model$residuals)
   model.stats$sw.stat <- shapiro.wilk$statistic
   model.stats$sw.p.value <- shapiro.wilk$p.value
+  
+  chow <- sctest(ols.formula, type = "Chow", data = dset)
+  model.stats$chow.stat <- chow$statistic
+  model.stats$chow.p.value <- chow$p.value
   
   # Variable stats & tests
   
@@ -132,34 +169,85 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
                            model.stats$bg.p.value<alpha &
                            model.stats$reset.p.value<alpha &
                            model.stats$ad.p.value<alpha &
-                           model.stats$sw.p.value<alpha)T else F
+                           model.stats$sw.p.value<alpha &
+                          model.stats$chow.p.value<alpha)T else F
   model.stats$n <- nrow(dset)
   model.stats$equation <- paste0(paste0(as.character(model.vars$var), sep = "*"),
                                  paste0("(", model.vars$coef , ")"), collapse = "+")
   
   if(visualize == T){
+    
     dset$predicted <- predict(model.original, dset)
-    model.plot <- ggplot(dset, aes_string(x="predicted", y=target)) +
-      geom_point(shape=19, color = "purple") +
-      xlab("Predicted") +
-      ylab("Observed") +
-      ggtitle(paste0(target, ": Predicted vs Observed, Adj. R2=",
-                     percent(model.stats$adjusted.R2))) +
-      theme_minimal()
-    # print(model.plot)
+    
+    if(time.series == T | length(time.var)>0){
+      model.plot <- ggplot(dset, aes_string(x="predicted", y=target)) +
+        geom_point(shape=19, color = "purple") +
+        xlab("Predicted") +
+        ylab("Observed") +
+        ggtitle(paste0(target, ": Predicted vs Observed, Adj. R2=",
+                       percent(model.stats$adjusted.R2))) +
+        theme_minimal()
+    }
+    if(time.series == T){
+      time.series.plot <- ggplot() +
+        geom_line(data = dset, aes_string(x="date", y=target,
+                                          col = "target")) +
+        geom_line(data = dset, aes(x=date, y=predicted,
+                                   col = paste0("predicted ", target))) +
+        xlab("Time") +
+        ylab(target) +
+        ggtitle(paste0(target, ": Predicted vs Observed")) +
+        labs(color = "") +
+        theme_minimal()
+    }else if(length(time.var)>0){
+      dset_ggplot <- reshape2::melt(dset[,c(target, "predicted", time.var)],
+                                    id = time.var)
+      ggplot(data=dset_ggplot,
+             aes(x=date, y=value, colour=variable)) +
+        geom_line() +
+        xlab("Time") +
+        ylab(target) +
+        ggtitle(paste0(target, ": Predicted vs Observed")) +
+        labs(color = "") +
+        theme_minimal()
+    }else{
+      
+      # dset$predicted <- predict(model.original, dset)
+      model.plot <- ggplot(dset, aes_string(x="predicted", y=target)) +
+        geom_point(shape=19, color = "purple") +
+        xlab("Predicted") +
+        ylab("Observed") +
+        ggtitle(paste0(target, ": Predicted vs Observed, Adj. R2=",
+                       percent(model.stats$adjusted.R2))) +
+        theme_minimal()
+      # print(model.plot)
+      time.series.plot<- NULL
+    }
   }
   
   if(output.residuals == T){
     model.errors <- model$residuals
+  }else{
+    model.errors <- NULL
   }
   
   return(list(stats = model.stats, var.stats = model.vars, plot = model.plot,
-              output.residuals = model$residuals))
+                output.residuals = model.errors,
+                time.plot = time.series.plot))
 }
 
 
 # model <- ols(dset = iris,
 #     target = "Sepal.Length",
 #     vars = "Sepal.Width",
-#     visualize = T, output.residuals = T)
+#     visualize = T, output.residuals = T, time.series = F)
+
+# EuStockMarkets2 <- data.frame(as.matrix(EuStockMarkets),
+#                           date=as.yearmon(time(EuStockMarkets)))
+# 
+# model <- ols(dset = EuStockMarkets2,
+#              target = "DAX",
+#              vars = "FTSE CAC",
+#              visualize = T, output.residuals = T, time.series = F,
+#              time.var = "date")
 # model[["plot"]]
