@@ -26,19 +26,15 @@ lags <- function(dset, vars, lag.vec){
   
   ## Parameters for tests
   # dset <- iris
-  # vars <- c("Sepal.Length")
+  # vars <- c("Sepal.Length", "Sepal.Width")
   # lag.vec <- c(3,5)
   
   for(i in 1:length(vars)){
     for(j in 1:length(lag.vec)){
       dset[[paste0(vars[i], ".", lag.vec[j])]] <- 
         c(rep(NA, times = lag.vec[j]),
-          # dset[[vars[i]]][(-(length(dset[[vars[i]]]))+lag.vec[j]-1):-length(dset[[vars[i]]])])
+          dset[[vars[i]]][(-(length(dset[[vars[i]]]))+lag.vec[j]-1):-length(dset[[vars[i]]])])
     }
   }
   return(dset)
 }
-
-cbind(iris$Sepal.Length, c(NA, NA, iris$Sepal.Length[-149:-150]), 
-      c(iris$Sepal.Length - c(NA, NA, iris$Sepal.Length[-149:-150])), 
-      c(NA, NA, diff(iris$Sepal.Length, 2)))

@@ -30,12 +30,10 @@ difs <- function(dset, vars, dif.vec){
   # dif.vec <- c(3,5)
   
   for(i in 1:length(vars)){
-    for(j in 1:length(lag.vec)){
+    for(j in 1:length(dif.vec)){
       dset[[paste0("Diff.", vars[i], ".", dif.vec[j])]] <-
         c(rep(NA, dif.vec[j]), diff(dset[[vars[i]]], dif.vec[j]))
     }
   }
   return(dset)
 }
-
-difs(iris, c("Sepal.Length"), c(3, 5, 7))

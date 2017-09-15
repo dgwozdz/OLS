@@ -79,6 +79,7 @@ ui <- fluidPage(
     ),
     tableOutput("first.two"),
     p(strong("Variables to choose from:"), textOutput("possible.variables")),
+    p(strong("Classes of variables"), textOutput("variable.classes")),
     fluidRow(
       column(4,
              textInput("target.var", h3("Input target variable:"),
@@ -90,7 +91,7 @@ ui <- fluidPage(
     fluidRow(
       column(4,
              textInput("time.var", h3("Input time variable:"),
-                       value = "Time variable here"))
+                       value = ""))
     ),
     plotlyOutput("plot"),
     plotlyOutput("time.plot"),
@@ -114,13 +115,21 @@ server <- function(input, output){
     
     df <- read.csv(infile$datapath, header = input$header,
                    sep = input$sep,quote = input$quote)
+    
     return(df)}
   )
+  # df[,input$time.var] <- date_decimal(df[,input$time.var])
+  # dset.in()$date.input <- observeEvent({
+  #     dset.in()[,input$time.var] <- date_decimal(dset.in()[,input$time.var])
+  #   })
   
   output$first.two <- renderTable({head(dset.in(), 2)})
   
   output$possible.variables <- renderText(
-    names(dset.in())[sapply(dset.in(), is.numeric)]
+    names(dset.in())#[sapply(dset.in(), is.numeric)]
+    )
+  output$variable.classes <- renderText(
+      sapply(dset.in(), class)#[sapply(dset.in(), is.numeric)]
   )
   
   model.all <- reactive({
@@ -130,7 +139,7 @@ server <- function(input, output){
       vars = input$independent.vars,
       visualize = T,
       output.residuals = T,
-      time.var = input$time.var
+      time.var = "date.input"
     )
     model.stats <- model[["stats"]]
     model.vars.stats <- model[["var.stats"]]
@@ -185,4 +194,5 @@ server <- function(input, output){
 }
 
 shinyApp(ui = ui, server = server)
-names(EuStockMarkets2)[sapply(EuStockMarkets2, is.numeric)]
+# names(EuStockMarkets2)[sapply(EuStockMarkets2, is.numeric)]
+# EuStockMarkets2 <- data.frame(EuStockMarkets, date = time(EuStockMarkets))

@@ -2,7 +2,7 @@
 # Author:             Damian Gwozdz (DG)
 # Function:           ols
 # Creation date:      15JUN2017
-# Last modified:      03SEP2017
+# Last modified:      15SEP2017
 # Description:        Function to build an Ordinary
 #                     Least Squares models and test it
 # Required functions: -
@@ -53,12 +53,14 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
   #                   term should be saved
   # 8)  time.series - a boolean value indicating the name of the variable
   #                 which indicates time
+  # 9)  time.var - variable identifying time
   #====================================================================
   
   ## parameters
   # dset <- iris
   # target <- "Sepal.Length"
   # vars <- "Sepal.Width Petal.Width"
+  # time.var <- NULL
   # dset <- EuStockMarkets
   # target <- "DAX"
   # vars <- "FTSE CAC"
@@ -70,17 +72,21 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
   # time.var <- "date"
   # dset <- EuStockMarkets2
   
-  # If a ts object is delcared as an input data set, transform it
+
+  
+  # If a ts object is declared as an input data set, transform it
   # to a data frame
   
   if(sum(class(dset) == "ts")>0){
     dset <- data.frame(as.matrix(dset),
                        date=as.yearmon(time(dset)))
-  }else if(length(time.var)>0){
+  }else if(length(time.var)>0 & class(dset[, time.var]) != "Date"){
     dset$date <- date_decimal(dset[,time.var])
-  }else{
-    stop("Declared data set is not an object of class 'ts'")
   }
+  # else{
+  #   stop("Declared data set is not an object of class 'ts' or
+  #        the time variable was not declared")
+  # }
   
   vars.split <- unlist(strsplit(vars, " "))
   
@@ -112,7 +118,11 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
   model.stats$vars <- vars
   model.stats$R2 <- model$r.squared
   model.stats$adjusted.R2 <- model$adj.r.squared
-  model.stats$RMSE <- RMSE(predict(model.original), dset[, target])
+  model.stats$RMSE <- RMSE(predict(model.original),
+                           # both: target and predicted value must be available to
+                           # reliably compute RMSE
+                           dset[apply(dset, 1, function(x) !sum(is.na(x))),
+                                c(target, vars.split)])
   model.stats$F.stat <- model$fstatistic["value"]
   model.stats$F.p.value <- pf(model$fstatistic[1], model$fstatistic[2],
                               model$fstatistic[3], lower=FALSE)
@@ -202,8 +212,9 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
     }else if(length(time.var)>0){
       dset_ggplot <- reshape2::melt(dset[,c(target, "predicted", time.var)],
                                     id = time.var)
-      ggplot(data=dset_ggplot,
-             aes(x=date, y=value, colour=variable)) +
+      time.series.plot <- ggplot(data=dset_ggplot,
+             aes_string(x = time.var, y = "value",
+                        colour = "variable", group = "variable")) +
         geom_line() +
         xlab("Time") +
         ylab(target) +
@@ -223,6 +234,9 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
       # print(model.plot)
       time.series.plot<- NULL
     }
+  }else{
+    model.plot <- NULL
+    time.series.plot<- NULL
   }
   
   if(output.residuals == T){
