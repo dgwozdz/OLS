@@ -78,10 +78,6 @@ ui <- fluidPage(
       )
     ),
     tableOutput("first.two"),
-    p("Class of dset"),
-    tableOutput("dset"),
-    # p("time.var:"),
-    # textOutput("time.var2"),
     p(strong("Variables to choose from:"), textOutput("possible.variables")),
     p(strong("Classes of variables"), textOutput("variable.classes")),
     fluidRow(
@@ -94,7 +90,8 @@ ui <- fluidPage(
     ),
     fluidRow(
       column(4,
-             textInput("time.var", h3("Input time variable:"), value = "NULL"))
+             textInput("time.var", h3("Input time variable
+                                      [CURRENTLY NOT WORKING]:"), value = "NULL"))
     ),
     plotlyOutput("plot"),
     plotlyOutput("time.plot"),
@@ -127,11 +124,11 @@ server <- function(input, output){
       return(dset.in())
     }else{
       eventReactive(input$time.var, {
-        dset.in()[, input$time.var] <-
-          as.Date(as.character(dset.in()[,input$time.var]))
+        dset.in2 <<- rbind(dset.in(),
+          dataf.table(date.input = as.Date(as.character(dset.in()[,input$time.var]))))
       })
-      }
-      return(dset.in())
+      return(dset.in2)
+    }
     })
   
   output$first.two <- renderTable({head(modified.set(), 2)})
@@ -142,11 +139,6 @@ server <- function(input, output){
   output$variable.classes <- renderText(
       sapply(dset.in(), class)[sapply(dset.in(), is.numeric)]
   )
-  output$dset <- renderText(class(dset.in()))
-  # output$time.var2 <- renderText(is.null(input$time.var))
-  # time.var.in <- eventReactive(input$time.var, {
-  #   switch(input$time.var == "NULL", NULL, input$time.var)
-  #   })
   model.all <- reactive({
     infile <- input$file1
     if(is.null(infile)){
