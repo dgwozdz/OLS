@@ -78,20 +78,23 @@ ui <- fluidPage(
       )
     ),
     tableOutput("first.two"),
+    p("Class of dset"),
+    tableOutput("dset"),
+    # p("time.var:"),
+    # textOutput("time.var2"),
     p(strong("Variables to choose from:"), textOutput("possible.variables")),
     p(strong("Classes of variables"), textOutput("variable.classes")),
     fluidRow(
       column(4,
              textInput("target.var", h3("Input target variable:"),
-                       value = "Target variable here")),
+                       value = "DAX")),
       column(8,
              textInput("independent.vars", h3("Input independent variables:"),
-                       value = "Independent variables separated by blanks here"))
+                       value = "CAC"))
     ),
     fluidRow(
       column(4,
-             textInput("time.var", h3("Input time variable:"),
-                       value = ""))
+             textInput("time.var", h3("Input time variable:"), value = "NULL"))
     ),
     plotlyOutput("plot"),
     plotlyOutput("time.plot"),
@@ -110,7 +113,7 @@ server <- function(input, output){
   dset.in <- reactive({
     infile <- input$file1
     if(is.null(infile)){
-      return(NULL)
+      return(iris)
     }
     
     df <- read.csv(infile$datapath, header = input$header,
@@ -118,39 +121,56 @@ server <- function(input, output){
     
     return(df)}
   )
-  # df[,input$time.var] <- date_decimal(df[,input$time.var])
-  # dset.in()$date.input <- observeEvent({
-  #     dset.in()[,input$time.var] <- date_decimal(dset.in()[,input$time.var])
-  #   })
+  
+  modified.set <- eventReactive(input$time.var, {
+      dset.in()[, input$time.var] <-
+        as.Date(as.character(dset.in()[,input$time.var]))
+    }
+  )
   
   output$first.two <- renderTable({head(dset.in(), 2)})
   
   output$possible.variables <- renderText(
-    names(dset.in())#[sapply(dset.in(), is.numeric)]
+    names(dset.in())[sapply(dset.in(), is.numeric)]
     )
   output$variable.classes <- renderText(
-      sapply(dset.in(), class)#[sapply(dset.in(), is.numeric)]
+      sapply(dset.in(), class)[sapply(dset.in(), is.numeric)]
   )
-  
-  model.all <- reactive({
-    model <- ols(
-      dset = dset.in(),
-      target = input$target.var,
-      vars = input$independent.vars,
-      visualize = T,
-      output.residuals = T,
-      time.var = "date.input"
-    )
+  output$dset <- renderText(class(dset.in()))
+  # output$time.var2 <- renderText(is.null(input$time.var))
+  # time.var.in <- eventReactive(input$time.var, {
+  #   switch(input$time.var == "NULL", NULL, input$time.var)
+  #   })
+  model.all <- reactive({ 
+    infile <- input$file1
+    if(is.null(infile)){
+      model <- ols(
+        dset = dset.in(),
+        target = input$target.var,
+        vars = input$independent.vars,
+        visualize = T,
+        output.residuals = T)
+    }else{
+      model <- ols(
+        dset = dset.in(),
+        target = input$target.var,
+        vars = input$independent.vars,
+        visualize = T,
+        output.residuals = T,
+        time.var = 
+          switch(input$time.var == "NULL", NULL, input$time.var)
+      )
+    }
     model.stats <- model[["stats"]]
     model.vars.stats <- model[["var.stats"]]
     model.plot <- ggplotly(model[["plot"]])
-    time.plot <- ggplotly(model[["time.plot"]])
+    # time.plot <- ggplotly(model[["time.plot"]])
     model.residuals <- model[["output.residuals"]]
     list(stats = model.stats,
          vars.stats = model.vars.stats,
          plot = model.plot,
-         residuals = model.residuals,
-         time.plot = time.plot)
+         residuals = model.residuals)#,
+         # time.plot = time.plot)
   })
   output$model.stats1 <- renderTable({model.all()[["stats"]][21]})
   output$model.stats2 <- renderTable({model.all()[["stats"]][3:10]})
@@ -159,12 +179,12 @@ server <- function(input, output){
   output$vars.stats <- renderTable({model.all()[["vars.stats"]]})
   output$plot <- renderPlotly({model.all()[["plot"]]})
   output$time.plot <- renderPlotly({model.all()[["time.plot"]]})
-  
-  
+
+
   # Evaluate H0 of normality tests for different tests:
   # - n<30: Shapiro-Wilk
   # - n>=30: Anderson-Darling
-  
+
   normality.test <- reactive(
     if(model.all()[["stats"]]$n<30){
       if(model.all()[["stats"]]$sw.p.value<0.05){
@@ -180,7 +200,7 @@ server <- function(input, output){
       }
     }
   )
-  
+
   output$histogram.residuals <- renderPlotly({
     ggplot() +
       geom_histogram(aes(x = model.all()[["residuals"]]),
