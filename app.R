@@ -122,13 +122,19 @@ server <- function(input, output){
     return(df)}
   )
   
-  modified.set <- eventReactive(input$time.var, {
-      dset.in()[, input$time.var] <-
-        as.Date(as.character(dset.in()[,input$time.var]))
-    }
-  )
+  modified.set <- reactive({
+    if(input$time.var == "NULL"){
+      return(dset.in())
+    }else{
+      eventReactive(input$time.var, {
+        dset.in()[, input$time.var] <-
+          as.Date(as.character(dset.in()[,input$time.var]))
+      })
+      }
+      return(dset.in())
+    })
   
-  output$first.two <- renderTable({head(dset.in(), 2)})
+  output$first.two <- renderTable({head(modified.set(), 2)})
   
   output$possible.variables <- renderText(
     names(dset.in())[sapply(dset.in(), is.numeric)]
@@ -141,7 +147,7 @@ server <- function(input, output){
   # time.var.in <- eventReactive(input$time.var, {
   #   switch(input$time.var == "NULL", NULL, input$time.var)
   #   })
-  model.all <- reactive({ 
+  model.all <- reactive({
     infile <- input$file1
     if(is.null(infile)){
       model <- ols(
@@ -150,27 +156,36 @@ server <- function(input, output){
         vars = input$independent.vars,
         visualize = T,
         output.residuals = T)
+      model.stats <- model[["stats"]]
+      model.vars.stats <- model[["var.stats"]]
+      model.plot <- ggplotly(model[["plot"]])
+      model.residuals <- model[["output.residuals"]]
+      list(stats = model.stats,
+           vars.stats = model.vars.stats,
+           plot = model.plot,
+           residuals = model.residuals)
+      
     }else{
       model <- ols(
-        dset = dset.in(),
+        dset = modified.set(),
         target = input$target.var,
         vars = input$independent.vars,
         visualize = T,
         output.residuals = T,
-        time.var = 
-          switch(input$time.var == "NULL", NULL, input$time.var)
+        time.var = switch(input$time.var == "NULL", NULL, input$time.var)
       )
+      model.stats <- model[["stats"]]
+      model.vars.stats <- model[["var.stats"]]
+      model.plot <- ggplotly(model[["plot"]])
+      time.plot <- switch(input$time.var == "NULL", NULL, ggplotly(model[["time.plot"]]))
+      model.residuals <- model[["output.residuals"]]
+      list(stats = model.stats,
+           vars.stats = model.vars.stats,
+           plot = model.plot,
+           residuals = model.residuals,
+           time.plot = switch(input$time.var == "NULL", NULL, time.plot))
     }
-    model.stats <- model[["stats"]]
-    model.vars.stats <- model[["var.stats"]]
-    model.plot <- ggplotly(model[["plot"]])
-    # time.plot <- ggplotly(model[["time.plot"]])
-    model.residuals <- model[["output.residuals"]]
-    list(stats = model.stats,
-         vars.stats = model.vars.stats,
-         plot = model.plot,
-         residuals = model.residuals)#,
-         # time.plot = time.plot)
+    
   })
   output$model.stats1 <- renderTable({model.all()[["stats"]][21]})
   output$model.stats2 <- renderTable({model.all()[["stats"]][3:10]})
@@ -178,7 +193,8 @@ server <- function(input, output){
   output$model.stats4 <- renderTable({model.all()[["stats"]][16:20]})
   output$vars.stats <- renderTable({model.all()[["vars.stats"]]})
   output$plot <- renderPlotly({model.all()[["plot"]]})
-  output$time.plot <- renderPlotly({model.all()[["time.plot"]]})
+  output$time.plot <- reactive(
+    renderPlotly(switch(input$time.var == "NULL", NULL, model.all()[["time.plot"]])))
 
 
   # Evaluate H0 of normality tests for different tests:
