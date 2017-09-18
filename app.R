@@ -1,8 +1,8 @@
 #====================================================================#
 # Author:             Damian Gwozdz (DG)
 # Code:               Shiny app for creation of OLS models
-# Creation date:      03SEP201
-# Last modified:      -
+# Creation date:      03SEP2017
+# Last modified:      18SEP201
 # Description:        -
 # Required functions: ols
 #
@@ -119,17 +119,24 @@ server <- function(input, output){
     return(df)}
   )
   
-  modified.set <- reactive({
-    if(input$time.var == "NULL"){
-      return(dset.in())
-    }else{
-      eventReactive(input$time.var, {
-        dset.in2 <<- rbind(dset.in(),
-          dataf.table(date.input = as.Date(as.character(dset.in()[,input$time.var]))))
-      })
-      return(dset.in2)
-    }
-    })
+  # modified.set <- eventReactive(input$time.var, {
+  #   if(input$time.var == "NULL"){
+  #     return(dset.in())
+  #   }else{
+  #     dset.in()[, input$time.var] <- as.Date(as.character(dset.in()[,input$time.var]))
+  #     return(dset.in())
+  #   }
+  # })
+  
+  newvar <- eventReactive(input$time.var,{
+    as.Date(
+      as.character(dset.in()[,input$time.var])
+      )
+  })
+  
+  modified.set <- eventReactive(input$time.var, {
+    cbind(dset.in(), date.var = newvar())
+  })
   
   output$first.two <- renderTable({head(modified.set(), 2)})
   
@@ -158,24 +165,33 @@ server <- function(input, output){
            residuals = model.residuals)
       
     }else{
-      model <- ols(
-        dset = modified.set(),
-        target = input$target.var,
-        vars = input$independent.vars,
-        visualize = T,
-        output.residuals = T,
-        time.var = switch(input$time.var == "NULL", NULL, input$time.var)
-      )
-      model.stats <- model[["stats"]]
-      model.vars.stats <- model[["var.stats"]]
-      model.plot <- ggplotly(model[["plot"]])
-      time.plot <- switch(input$time.var == "NULL", NULL, ggplotly(model[["time.plot"]]))
-      model.residuals <- model[["output.residuals"]]
+      
+      # time.var.input <- eventReactive(input$time.var,
+      #                                {switch(input$time.var == "NULL", NULL, date.var())})
+      
+      model <- eventReactive(input$time.var,{
+        ols(
+          dset = modified.set(),
+          target = input$target.var,
+          vars = input$independent.vars,
+          visualize = T,
+          output.residuals = T,
+          time.var = "date.var"
+        )
+      })
+      model.stats <- model()[["stats"]]
+      model.vars.stats <- model()[["var.stats"]]
+      model.plot <- ggplotly(model()[["plot"]])
+      time.plot <- ggplotly(model()[["time.plot"]])
+      model.residuals <- model()[["output.residuals"]]
+      
       list(stats = model.stats,
            vars.stats = model.vars.stats,
            plot = model.plot,
-           residuals = model.residuals,
-           time.plot = switch(input$time.var == "NULL", NULL, time.plot))
+           residuals = model.residuals
+           ,
+           time.plot = time.plot
+           )
     }
     
   })
@@ -185,8 +201,7 @@ server <- function(input, output){
   output$model.stats4 <- renderTable({model.all()[["stats"]][16:20]})
   output$vars.stats <- renderTable({model.all()[["vars.stats"]]})
   output$plot <- renderPlotly({model.all()[["plot"]]})
-  output$time.plot <- reactive(
-    renderPlotly(switch(input$time.var == "NULL", NULL, model.all()[["time.plot"]])))
+  output$time.plot <- renderPlotly(model.all()[["time.plot"]])
 
 
   # Evaluate H0 of normality tests for different tests:
@@ -222,5 +237,3 @@ server <- function(input, output){
 }
 
 shinyApp(ui = ui, server = server)
-# names(EuStockMarkets2)[sapply(EuStockMarkets2, is.numeric)]
-# EuStockMarkets2 <- data.frame(EuStockMarkets, date = time(EuStockMarkets))
