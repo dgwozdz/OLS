@@ -7,8 +7,9 @@
 # Required functions: ols
 #
 #====================================================================#
+# options(shiny.error = browser)
 library(shiny)
-source("ols.R")
+# source("ols.R")
 options(shiny.maxRequestSize=0.05*1024^2)
 
 ui <- fluidPage(
@@ -55,6 +56,7 @@ ui <- fluidPage(
                )
              ),
   mainPanel(
+    # useShinyjs(),
     fluidRow(
       column(5,
              fileInput('file1', "Input a csv file:"),
@@ -77,25 +79,27 @@ ui <- fluidPage(
                           '"')
       )
     ),
+    tableOutput("time"),
     tableOutput("first.two"),
+    textOutput("modified.names"),
     p(strong("Variables to choose from:"), textOutput("possible.variables")),
     p(strong("Classes of variables"), textOutput("variable.classes")),
     fluidRow(
       column(4,
              textInput("target.var", h3("Input target variable:"),
-                       value = "DAX")),
+                       value = "Sepal.Length")),
       column(8,
              textInput("independent.vars", h3("Input independent variables:"),
-                       value = "CAC"))
+                       value = "Sepal.Width"))
     ),
     fluidRow(
       column(4,
              textInput("time.var", h3("Input time variable
                                       [CURRENTLY NOT WORKING]:"), value = "NULL"))
     ),
-    plotlyOutput("plot"),
-    plotlyOutput("time.plot"),
-    plotlyOutput("histogram.residuals"),
+    # plotlyOutput("plot"),
+    # plotlyOutput("time.plot"),
+    # plotlyOutput("histogram.residuals"),
     h3("Model statistics"),
     tableOutput("model.stats1"),
     tableOutput("model.stats2"),
@@ -119,33 +123,35 @@ server <- function(input, output){
     return(df)}
   )
   
-  # modified.set <- eventReactive(input$time.var, {
-  #   if(input$time.var == "NULL"){
-  #     return(dset.in())
-  #   }else{
-  #     dset.in()[, input$time.var] <- as.Date(as.character(dset.in()[,input$time.var]))
-  #     return(dset.in())
-  #   }
-  # })
-  
   newvar <- eventReactive(input$time.var,{
-    as.Date(
-      as.character(dset.in()[,input$time.var])
+    if(input$time.var == "NULL"){
+      NULL
+    }else{
+      as.Date(
+        as.character(dset.in()[,input$time.var])
       )
+    }
   })
   
-  modified.set <- eventReactive(input$time.var, {
-    cbind(dset.in(), date.var = newvar())
+  modified.set <- eventReactive(input$time.var,{
+    if(input$time.var == "NULL"){
+      dset.in()
+    }else{
+      cbind(dset.in(), date.var = newvar())
+    }
   })
   
-  output$first.two <- renderTable({head(modified.set(), 2)})
+  output$first.two <- eventReactive(input$file1,{
+                                    renderTable({head(modified.set(), 2)})})
   
   output$possible.variables <- renderText(
     names(dset.in())[sapply(dset.in(), is.numeric)]
     )
+  
   output$variable.classes <- renderText(
       sapply(dset.in(), class)[sapply(dset.in(), is.numeric)]
   )
+
   model.all <- reactive({
     infile <- input$file1
     if(is.null(infile)){
@@ -154,7 +160,8 @@ server <- function(input, output){
         target = input$target.var,
         vars = input$independent.vars,
         visualize = T,
-        output.residuals = T)
+        output.residuals = T,
+        time.var = ifelse(input$time.var == "NULL", NULL, input$time.var))
       model.stats <- model[["stats"]]
       model.vars.stats <- model[["var.stats"]]
       model.plot <- ggplotly(model[["plot"]])
@@ -163,77 +170,83 @@ server <- function(input, output){
            vars.stats = model.vars.stats,
            plot = model.plot,
            residuals = model.residuals)
-      
+
     }else{
-      
-      # time.var.input <- eventReactive(input$time.var,
-      #                                {switch(input$time.var == "NULL", NULL, date.var())})
-      
-      model <- eventReactive(input$time.var,{
-        ols(
-          dset = modified.set(),
-          target = input$target.var,
-          vars = input$independent.vars,
-          visualize = T,
-          output.residuals = T,
-          time.var = "date.var"
-        )
-      })
-      model.stats <- model()[["stats"]]
-      model.vars.stats <- model()[["var.stats"]]
-      model.plot <- ggplotly(model()[["plot"]])
-      time.plot <- ggplotly(model()[["time.plot"]])
-      model.residuals <- model()[["output.residuals"]]
-      
+
+      model <-  ols(
+                    dset = modified.set(),
+                    target = input$target.var,
+                    vars = input$independent.vars,
+                    visualize = T,
+                    output.residuals = T,
+                    time.var = "date.var"
+                    )
+      model.stats <- model[["stats"]]
+      model.vars.stats <- model[["var.stats"]]
+      model.plot <- ggplotly(model[["plot"]])
+      # time.plot <- ggplotly(model[["time.plot"]])
+      model.residuals <- model[["output.residuals"]]
+
       list(stats = model.stats,
            vars.stats = model.vars.stats,
            plot = model.plot,
            residuals = model.residuals
-           ,
-           time.plot = time.plot
+           # ,
+           # time.plot = time.plot
            )
     }
-    
+
   })
   output$model.stats1 <- renderTable({model.all()[["stats"]][21]})
   output$model.stats2 <- renderTable({model.all()[["stats"]][3:10]})
-  output$model.stats3 <- renderTable({model.all()[["stats"]][11:15]})
-  output$model.stats4 <- renderTable({model.all()[["stats"]][16:20]})
-  output$vars.stats <- renderTable({model.all()[["vars.stats"]]})
-  output$plot <- renderPlotly({model.all()[["plot"]]})
-  output$time.plot <- renderPlotly(model.all()[["time.plot"]])
+  # output$model.stats3 <- renderTable({model.all()[["stats"]][11:15]})
+  # output$model.stats4 <- renderTable({model.all()[["stats"]][16:20]})
+  # output$vars.stats <- renderTable({model.all()[["vars.stats"]]})
+  # output$plot <- renderPlotly({model.all()[["plot"]]})
+  # output$time.plot <- renderPlotly({
+  #   if(is.null(model.all()[["time.plot"]])){
+  #     
+  #   }else{
+  #     model.all()[["time.plot"]]
+  #   }
+  # })
+  # output$modified.set.class <- renderText(class(modified.set()))
+  output$time <- renderTable(head(dset.in()))
+  modif.names <- reactive(names(dset.in()))
+  output$modified.names <- renderText(modif.names())
 
 
   # Evaluate H0 of normality tests for different tests:
   # - n<30: Shapiro-Wilk
   # - n>=30: Anderson-Darling
 
-  normality.test <- reactive(
-    if(model.all()[["stats"]]$n<30){
-      if(model.all()[["stats"]]$sw.p.value<0.05){
-        "distribution other than normal"
-      }else{
-        "normal distribution"
-      }
-    }else{
-      if(model.all()[["stats"]]$ad.p.value<0.05){
-        "distribution other than normal"
-      }else{
-        "normal distribution"
-      }
-    }
-  )
-
-  output$histogram.residuals <- renderPlotly({
-    ggplot() +
-      geom_histogram(aes(x = model.all()[["residuals"]]),
-                     fill = I(input$histcolour),
-                     alpha = I(input$alpha.bin.slider),
-                     bins = input$hist.bin.slider) +
-      xlab("") +
-      ggtitle(paste0("Histogram of residuals: ", normality.test())) +
-      theme_minimal()
-  })
-}
+  # normality.test <- reactive(
+  #   if(model.all()[["stats"]]$n<30){
+  #     if(model.all()[["stats"]]$sw.p.value<0.05){
+  #       "distribution other than normal"
+  #     }else{
+  #       "normal distribution"
+  #     }
+  #   }else{
+  #     if(model.all()[["stats"]]$ad.p.value<0.05){
+  #       "distribution other than normal"
+  #     }else{
+  #       "normal distribution"
+  #     }
+  #   }
+  # )
+  # 
+  # output$histogram.residuals <- renderPlotly({
+  #   ggplot() +
+  #     geom_histogram(aes(x = model.all()[["residuals"]]),
+  #                    fill = I(input$histcolour),
+  #                    alpha = I(input$alpha.bin.slider),
+  #                    bins = input$hist.bin.slider) +
+  #     xlab("") +
+  #     ggtitle(paste0("Histogram of residuals: ", normality.test())) +
+  #     theme_minimal()
+  }
 
 shinyApp(ui = ui, server = server)
+# withLogErrors(shinyApp(ui = ui, server = server), full = getOption("shiny.fullstacktrace", FALSE),
+#               offset = getOption("shiny.stacktraceoffset", TRUE))
