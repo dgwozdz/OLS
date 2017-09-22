@@ -2,7 +2,7 @@
 # Author:             Damian Gwozdz (DG)
 # Code:               Shiny app for creation of OLS models
 # Creation date:      03SEP2017
-# Last modified:      18SEP201
+# Last modified:      22SEP201
 # Description:        -
 # Required functions: ols
 #
@@ -56,7 +56,6 @@ ui <- fluidPage(
                )
              ),
   mainPanel(
-    # useShinyjs(),
     fluidRow(
       column(5,
              fileInput('file1', "Input a csv file:"),
@@ -79,27 +78,24 @@ ui <- fluidPage(
                           '"')
       )
     ),
-    tableOutput("time"),
     tableOutput("first.two"),
-    textOutput("modified.names"),
     p(strong("Variables to choose from:"), textOutput("possible.variables")),
     p(strong("Classes of variables"), textOutput("variable.classes")),
     fluidRow(
       column(4,
              textInput("target.var", h3("Input target variable:"),
-                       value = "Sepal.Length")),
+                       value = "DAX")),
       column(8,
              textInput("independent.vars", h3("Input independent variables:"),
-                       value = "Sepal.Width"))
+                       value = "CAC"))
     ),
     fluidRow(
       column(4,
-             textInput("time.var", h3("Input time variable
-                                      [CURRENTLY NOT WORKING]:"), value = "NULL"))
+             textInput("time.var", h3("Input time variable or enter 'NULL':"), value = ""))
     ),
-    # plotlyOutput("plot"),
-    # plotlyOutput("time.plot"),
-    # plotlyOutput("histogram.residuals"),
+    plotlyOutput("plot"),
+    plotlyOutput("time.plot"),
+    plotlyOutput("histogram.residuals"),
     h3("Model statistics"),
     tableOutput("model.stats1"),
     tableOutput("model.stats2"),
@@ -111,6 +107,7 @@ ui <- fluidPage(
 )
 
 server <- function(input, output){
+  
   dset.in <- reactive({
     infile <- input$file1
     if(is.null(infile)){
@@ -123,129 +120,107 @@ server <- function(input, output){
     return(df)}
   )
   
-  newvar <- eventReactive(input$time.var,{
-    if(input$time.var == "NULL"){
-      NULL
+  first.two <- reactive({
+    if(is.null(input$file1)){
+      head(iris, 2)
     }else{
-      as.Date(
-        as.character(dset.in()[,input$time.var])
-      )
+      head(dset.in(),2)
     }
   })
   
-  modified.set <- eventReactive(input$time.var,{
-    if(input$time.var == "NULL"){
-      dset.in()
-    }else{
-      cbind(dset.in(), date.var = newvar())
-    }
-  })
+  output$first.two <- renderTable({first.two()})
   
-  output$first.two <- eventReactive(input$file1,{
-                                    renderTable({head(modified.set(), 2)})})
-  
-  output$possible.variables <- renderText(
+  output$possible.variables <- reactive(
     names(dset.in())[sapply(dset.in(), is.numeric)]
-    )
-  
+  )
   output$variable.classes <- renderText(
       sapply(dset.in(), class)[sapply(dset.in(), is.numeric)]
   )
 
-  model.all <- reactive({
-    infile <- input$file1
-    if(is.null(infile)){
-      model <- ols(
-        dset = dset.in(),
-        target = input$target.var,
-        vars = input$independent.vars,
-        visualize = T,
-        output.residuals = T,
-        time.var = ifelse(input$time.var == "NULL", NULL, input$time.var))
-      model.stats <- model[["stats"]]
-      model.vars.stats <- model[["var.stats"]]
-      model.plot <- ggplotly(model[["plot"]])
-      model.residuals <- model[["output.residuals"]]
-      list(stats = model.stats,
-           vars.stats = model.vars.stats,
-           plot = model.plot,
-           residuals = model.residuals)
-
+  dset.out <- eventReactive(input$time.var,{
+    
+    if(input$time.var %in% c("NULL")){
+      dset.in()
     }else{
-
-      model <-  ols(
-                    dset = modified.set(),
-                    target = input$target.var,
-                    vars = input$independent.vars,
-                    visualize = T,
-                    output.residuals = T,
-                    time.var = "date.var"
-                    )
-      model.stats <- model[["stats"]]
-      model.vars.stats <- model[["var.stats"]]
-      model.plot <- ggplotly(model[["plot"]])
-      # time.plot <- ggplotly(model[["time.plot"]])
-      model.residuals <- model[["output.residuals"]]
-
-      list(stats = model.stats,
-           vars.stats = model.vars.stats,
-           plot = model.plot,
-           residuals = model.residuals
-           # ,
-           # time.plot = time.plot
-           )
+      cbind(dset.in(), date.var = 
+        as.Date(as.character(dset.in()[,input$time.var])))
     }
-
   })
+  
+  date.cntrl <- eventReactive(input$time.var,{
+    if(input$time.var %in% c("NULL")){
+      NULL
+    }else{
+      "date.var"
+    }
+  })
+  
+  model.all <- reactive({
+    model <- ols(
+      dset = dset.out(),
+      target = input$target.var,
+      vars = input$independent.vars,
+      visualize = T,
+      output.residuals = T,
+      time.var = date.cntrl())
+    model.stats <- model[["stats"]]
+    model.vars.stats <- model[["var.stats"]]
+    model.plot <- ggplotly(model[["plot"]])
+    time.plot <- if(is.null(date.cntrl())){NULL}else{ggplotly(model[["time.plot"]])}
+    model.residuals <- model[["output.residuals"]]
+    
+    list(stats = model.stats,
+         vars.stats = model.vars.stats,
+         plot = model.plot,
+         residuals = model.residuals,
+         time.plot = time.plot)
+  })
+  
   output$model.stats1 <- renderTable({model.all()[["stats"]][21]})
   output$model.stats2 <- renderTable({model.all()[["stats"]][3:10]})
-  # output$model.stats3 <- renderTable({model.all()[["stats"]][11:15]})
-  # output$model.stats4 <- renderTable({model.all()[["stats"]][16:20]})
-  # output$vars.stats <- renderTable({model.all()[["vars.stats"]]})
-  # output$plot <- renderPlotly({model.all()[["plot"]]})
-  # output$time.plot <- renderPlotly({
-  #   if(is.null(model.all()[["time.plot"]])){
-  #     
-  #   }else{
-  #     model.all()[["time.plot"]]
-  #   }
-  # })
-  # output$modified.set.class <- renderText(class(modified.set()))
-  output$time <- renderTable(head(dset.in()))
-  modif.names <- reactive(names(dset.in()))
-  output$modified.names <- renderText(modif.names())
-
-
+  output$model.stats3 <- renderTable({model.all()[["stats"]][11:15]})
+  output$model.stats4 <- renderTable({model.all()[["stats"]][16:20]})
+  output$vars.stats <- renderTable({model.all()[["vars.stats"]]})
+  output$plot <- renderPlotly({model.all()[["plot"]]})
+  output$time.plot <- reactive({
+    if(input$time.var %in% c("NULL")){
+      NULL
+    }else{
+      renderPlotly(model.all()[["time.plot"]])
+    }
+  })
+  
   # Evaluate H0 of normality tests for different tests:
   # - n<30: Shapiro-Wilk
   # - n>=30: Anderson-Darling
 
-  # normality.test <- reactive(
-  #   if(model.all()[["stats"]]$n<30){
-  #     if(model.all()[["stats"]]$sw.p.value<0.05){
-  #       "distribution other than normal"
-  #     }else{
-  #       "normal distribution"
-  #     }
-  #   }else{
-  #     if(model.all()[["stats"]]$ad.p.value<0.05){
-  #       "distribution other than normal"
-  #     }else{
-  #       "normal distribution"
-  #     }
-  #   }
-  # )
-  # 
-  # output$histogram.residuals <- renderPlotly({
-  #   ggplot() +
-  #     geom_histogram(aes(x = model.all()[["residuals"]]),
-  #                    fill = I(input$histcolour),
-  #                    alpha = I(input$alpha.bin.slider),
-  #                    bins = input$hist.bin.slider) +
-  #     xlab("") +
-  #     ggtitle(paste0("Histogram of residuals: ", normality.test())) +
-  #     theme_minimal()
-  }
+  normality.test <- reactive(
+    if(model.all()[["stats"]]$n<30){
+      if(model.all()[["stats"]]$sw.p.value<0.05){
+        "distribution other than normal"
+      }else{
+        "normal distribution"
+      }
+    }else{
+      if(model.all()[["stats"]]$ad.p.value<0.05){
+        "distribution other than normal"
+      }else{
+        "normal distribution"
+      }
+    }
+  )
+
+  output$histogram.residuals <- renderPlotly({
+    ggplot() +
+      geom_histogram(aes(x = model.all()[["residuals"]]),
+                     fill = I(input$histcolour),
+                     alpha = I(input$alpha.bin.slider),
+                     bins = input$hist.bin.slider) +
+      xlab("") +
+      ggtitle(paste0("Histogram of residuals: ", normality.test())) +
+      theme_minimal()
+  })
+}
 
 shinyApp(ui = ui, server = server)
 # withLogErrors(shinyApp(ui = ui, server = server), full = getOption("shiny.fullstacktrace", FALSE),
