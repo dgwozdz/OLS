@@ -2,15 +2,17 @@
 # Author:             Damian Gwozdz (DG)
 # Code:               Shiny app for creation of OLS models
 # Creation date:      03SEP2017
-# Last modified:      22SEP201
+# Last modified:      23SEP201
 # Description:        -
 # Required functions: ols
 #
 #====================================================================#
-# options(shiny.error = browser)
+
 library(shiny)
-# source("ols.R")
+source("ols.R")
 options(shiny.maxRequestSize=0.05*1024^2)
+# install.packages("qdapRegex")
+# library(qdapRegex)
 
 ui <- fluidPage(
   titlePanel("Ordinary Least Squares Models in iris data set"),
@@ -51,7 +53,7 @@ ui <- fluidPage(
                                      "yellow", "grey"), selected = "blue"),
              sliderInput("hist.bin.slider", "Choose number of bins of histogram:",
                          min = 1, max = nrow(iris), value = 30, step = 5),
-             sliderInput("alpha.bin.slider", "Choose transaparence:",
+             sliderInput("alpha.bin.slider", "Choose transparence level:",
                          min = 0, max = 1, value = 0.7, step = 0.1)
                )
              ),
@@ -78,20 +80,22 @@ ui <- fluidPage(
                           '"')
       )
     ),
+    p("Preview of the frist two rows:"),
     tableOutput("first.two"),
-    p(strong("Variables to choose from:"), textOutput("possible.variables")),
-    p(strong("Classes of variables"), textOutput("variable.classes")),
+    p(strong("Possible dependent/independent variables:"),
+      textOutput("possible.variables")),
+    p(strong("Other variables:"), textOutput("other.variables")),
     fluidRow(
       column(4,
              textInput("target.var", h3("Input target variable:"),
-                       value = "DAX")),
+                       value = "Sepal.Length")),
       column(8,
              textInput("independent.vars", h3("Input independent variables:"),
-                       value = "CAC"))
+                       value = "Petal.Length"))
     ),
     fluidRow(
       column(4,
-             textInput("time.var", h3("Input time variable or enter 'NULL':"), value = ""))
+             textInput("time.var", h3("Input time variable:"), value = ""))
     ),
     plotlyOutput("plot"),
     plotlyOutput("time.plot"),
@@ -120,35 +124,43 @@ server <- function(input, output){
     return(df)}
   )
   
+  
+  # Variables which can be dependent/independent in OLS model:
+  output$possible.variables <- reactive(
+    names(dset.in())[sapply(dset.in(), is.numeric)]
+  )
+  # Other variables (including possible time variable):
+  output$other.variables <- renderText(
+    names(dset.in())[sapply(dset.in(), function(x) !is.numeric(x))]
+  )
+  
+  time.var <- reactive(qdapRegex::rm_white(input$time.var))
+  
+  
+  ignored.time.variables <- c("")
+
+  dset.out <- eventReactive(c(input$time.var, input$file1), {
+    
+    if(time.var() %in% ignored.time.variables){
+      dset.in()
+    }else{
+      cbind(dset.in(), date.var = 
+        as.Date(as.character(dset.in()[,time.var()])))
+    }
+  })
+  
+  # Output first two rows:
   first.two <- reactive({
     if(is.null(input$file1)){
       head(iris, 2)
     }else{
-      head(dset.in(),2)
+      head(dset.out(), 2)
     }
   })
-  
   output$first.two <- renderTable({first.two()})
   
-  output$possible.variables <- reactive(
-    names(dset.in())[sapply(dset.in(), is.numeric)]
-  )
-  output$variable.classes <- renderText(
-      sapply(dset.in(), class)[sapply(dset.in(), is.numeric)]
-  )
-
-  dset.out <- eventReactive(input$time.var,{
-    
-    if(input$time.var %in% c("NULL")){
-      dset.in()
-    }else{
-      cbind(dset.in(), date.var = 
-        as.Date(as.character(dset.in()[,input$time.var])))
-    }
-  })
-  
-  date.cntrl <- eventReactive(input$time.var,{
-    if(input$time.var %in% c("NULL")){
+  date.cntrl <- eventReactive(time.var(),{
+    if(time.var() %in% ignored.time.variables){
       NULL
     }else{
       "date.var"
@@ -158,36 +170,24 @@ server <- function(input, output){
   model.all <- reactive({
     model <- ols(
       dset = dset.out(),
-      target = input$target.var,
-      vars = input$independent.vars,
+      target = qdapRegex::rm_white(input$target.var),
+      vars = qdapRegex::rm_white(input$independent.vars),
       visualize = T,
       output.residuals = T,
       time.var = date.cntrl())
-    model.stats <- model[["stats"]]
-    model.vars.stats <- model[["var.stats"]]
-    model.plot <- ggplotly(model[["plot"]])
-    time.plot <- if(is.null(date.cntrl())){NULL}else{ggplotly(model[["time.plot"]])}
-    model.residuals <- model[["output.residuals"]]
-    
-    list(stats = model.stats,
-         vars.stats = model.vars.stats,
-         plot = model.plot,
-         residuals = model.residuals,
-         time.plot = time.plot)
   })
   
-  output$model.stats1 <- renderTable({model.all()[["stats"]][21]})
-  output$model.stats2 <- renderTable({model.all()[["stats"]][3:10]})
-  output$model.stats3 <- renderTable({model.all()[["stats"]][11:15]})
-  output$model.stats4 <- renderTable({model.all()[["stats"]][16:20]})
-  output$vars.stats <- renderTable({model.all()[["vars.stats"]]})
-  output$plot <- renderPlotly({model.all()[["plot"]]})
-  output$time.plot <- reactive({
-    if(input$time.var %in% c("NULL")){
-      NULL
-    }else{
-      renderPlotly(model.all()[["time.plot"]])
-    }
+  output$model.stats1 <- renderTable(model.all()[["stats"]][21])
+  output$model.stats2 <- renderTable(model.all()[["stats"]][3:10])
+  output$model.stats3 <- renderTable(model.all()[["stats"]][11:15])
+  output$model.stats4 <- renderTable(model.all()[["stats"]][16:20])
+  output$vars.stats <- renderTable(model.all()[["var.stats"]])
+  output$plot <- renderPlotly(model.all()[["plot"]])
+  output$time.plot <- renderPlotly({
+    validate(
+      need(date.cntrl(), "No time variale declared: time plot cannot be built.")
+    )
+    model.all()[["time.plot"]]
   })
   
   # Evaluate H0 of normality tests for different tests:
@@ -212,7 +212,7 @@ server <- function(input, output){
 
   output$histogram.residuals <- renderPlotly({
     ggplot() +
-      geom_histogram(aes(x = model.all()[["residuals"]]),
+      geom_histogram(aes(x = model.all()[["output.residuals"]]),
                      fill = I(input$histcolour),
                      alpha = I(input$alpha.bin.slider),
                      bins = input$hist.bin.slider) +
@@ -223,5 +223,3 @@ server <- function(input, output){
 }
 
 shinyApp(ui = ui, server = server)
-# withLogErrors(shinyApp(ui = ui, server = server), full = getOption("shiny.fullstacktrace", FALSE),
-#               offset = getOption("shiny.stacktraceoffset", TRUE))

@@ -69,7 +69,7 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
   # visualize <- T
   # output.residuals <- T
   # time.series <- F
-  # time.var <- "date"
+  # time.var <- NULL
   # dset <- EuStockMarkets2
   
 
@@ -79,9 +79,9 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
   
   if(sum(class(dset) == "ts")>0){
     dset <- data.frame(as.matrix(dset),
-                       date=as.yearmon(time(dset)))
+                       date.custom=as.yearmon(time(dset)))
   }else if(length(time.var)>0 & class(dset[, time.var]) != "Date"){
-    dset$date <- date_decimal(dset[,time.var])
+    dset$date.custom <- date_decimal(dset[,time.var])
   }
   # else{
   #   stop("Declared data set is not an object of class 'ts' or
@@ -93,9 +93,11 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
   nvars <- if(intercept == T){length(vars.split)+1}else{length(vars.split)}
   
   if(time.series == T){
-    dset <- dset[,c(target, vars.split, "date")]
-  }else{
+    dset <- dset[,c(target, vars.split, "date.custom")]
+  }else if(!is.null(time.var)){
     dset <- dset[,c(target, vars.split, time.var)]
+  }else{
+    dset <- dset[,c(target, vars.split)]
   }
   
   intercept.string <- if(intercept == T){""}else{"-1"}
@@ -200,9 +202,9 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
     }
     if(time.series == T){
       time.series.plot <- ggplot() +
-        geom_line(data = dset, aes_string(x="date", y=target,
+        geom_line(data = dset, aes_string(x="date.custom", y=target,
                                           col = "target")) +
-        geom_line(data = dset, aes(x=date, y=predicted,
+        geom_line(data = dset, aes(x=date.custom, y=predicted,
                                    col = paste0("predicted ", target))) +
         xlab("Time") +
         ylab(target) +
@@ -250,7 +252,7 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
                 time.plot = time.series.plot))
 }
 
-
+### Examples
 # model <- ols(dset = iris,
 #     target = "Sepal.Length",
 #     vars = "Sepal.Width",
@@ -263,5 +265,12 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
 #              target = "DAX",
 #              vars = "FTSE CAC",
 #              visualize = T, output.residuals = T, time.series = F,
-#              time.var = "date")
+#              time.var = NULL)
 # model[["plot"]]
+
+# a <- read.csv("EuStockMarkets2.csv")
+# ols(dset = EuStockMarkets2,
+#                  target = "DAX",
+#                  vars = "FTSE CAC",
+#                  visualize = T, output.residuals = T,
+#                  time.var = "NULL")
