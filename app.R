@@ -8,20 +8,22 @@
 #
 #====================================================================#
 
+library(qdapRegex)
 library(shiny)
+library(datasets)
 source("ols.R")
 options(shiny.maxRequestSize=0.05*1024^2)
 # install.packages("qdapRegex")
 # library(qdapRegex)
 
 ui <- fluidPage(
-  titlePanel("Ordinary Least Squares Models in iris data set"),
+  titlePanel("Ordinary Least Squares Models in selected data set"),
   sidebarPanel(
     helpText("This application creates an Ordinary Least Squares (OLS) model
              for declared dependent and independent variables from iris dataset.
              The model is tested by multiple statistical tests. Additionally,
              a visualization of predicted vs. observed values is created.",
-             strong("Maximum file size was set to 50 kb."),
+             strong("Maximum file size is set to 50 kb."),
              br(),
              br(),
              strong("Variables in 'Independent Variables' section should 
@@ -59,8 +61,13 @@ ui <- fluidPage(
              ),
   mainPanel(
     fluidRow(
+      column(5, 
+             selectInput("set", "Select a data set...:",
+                         c("iris" = "iris", "mtcars" = "mtcars",
+                           "EUstockMarkets" = "EuStockMarkets.custom"))
+      ),
       column(5,
-             fileInput('file1', "Input a csv file:"),
+             fileInput('file1', "...or input a csv file:"),
              accept=c('text/csv', 
                       'text/comma-separated-values,text/plain', 
                       '.csv'),
@@ -94,8 +101,10 @@ ui <- fluidPage(
                        value = "Petal.Length"))
     ),
     fluidRow(
-      column(4,
-             textInput("time.var", h3("Input time variable:"), value = ""))
+      column(12,
+             textInput("time.var",
+                       h3("Input time variable 
+                          (you can choose 'date' in 'EUstockMarkets'):"), value = ""))
     ),
     plotlyOutput("plot"),
     plotlyOutput("time.plot"),
@@ -112,10 +121,15 @@ ui <- fluidPage(
 
 server <- function(input, output){
   
+  EuStockMarkets.custom <- EuStockMarkets
+  EuStockMarkets.custom <- data.frame(
+    as.matrix(EuStockMarkets.custom), date = 
+      date_decimal(as.numeric(time(EuStockMarkets.custom))))
+  
   dset.in <- reactive({
     infile <- input$file1
     if(is.null(infile)){
-      return(iris)
+      return(get(input$set))
     }
     
     df <- read.csv(infile$datapath, header = input$header,
@@ -123,7 +137,6 @@ server <- function(input, output){
     
     return(df)}
   )
-  
   
   # Variables which can be dependent/independent in OLS model:
   output$possible.variables <- reactive(
@@ -136,10 +149,9 @@ server <- function(input, output){
   
   time.var <- reactive(qdapRegex::rm_white(input$time.var))
   
-  
   ignored.time.variables <- c("")
 
-  dset.out <- eventReactive(c(input$time.var, input$file1), {
+  dset.out <- eventReactive(c(time.var(), input$file1, input$set), {
     
     if(time.var() %in% ignored.time.variables){
       dset.in()
@@ -152,7 +164,7 @@ server <- function(input, output){
   # Output first two rows:
   first.two <- reactive({
     if(is.null(input$file1)){
-      head(iris, 2)
+      head(dset.in(), 2)
     }else{
       head(dset.out(), 2)
     }
@@ -177,7 +189,7 @@ server <- function(input, output){
       time.var = date.cntrl())
   })
   
-  output$model.stats1 <- renderTable(model.all()[["stats"]][21])
+  output$model.stats1 <- renderTable(model.all()[["stats"]]["tests"])
   output$model.stats2 <- renderTable(model.all()[["stats"]][3:10])
   output$model.stats3 <- renderTable(model.all()[["stats"]][11:15])
   output$model.stats4 <- renderTable(model.all()[["stats"]][16:20])
