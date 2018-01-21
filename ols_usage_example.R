@@ -9,7 +9,7 @@
 #
 #====================================================================#
 
-setwd('F:/Damian/github/ols/OLS')
+setwd('..')
 
 library(datasets)
 library(utils)
