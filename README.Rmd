@@ -142,6 +142,7 @@ qplot(model1[["output.residuals"]]) +
   xlab('') +
   ggtitle("Histogram of residuals") # plot
 ```
+<img src="pictures/histogram.png" style="display: block; margin: auto;" />
 
 The `EuStockMarkets` data set is an object of `mts` class. That means that it includes dates. We can take advantage of it and visualise predicted and observed values of `DAX ` on one plot dependent on time. To do it,`time.series` and `visualize` arguments are used:
 
