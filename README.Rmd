@@ -142,7 +142,7 @@ qplot(model1[["output.residuals"]]) +
   xlab('') +
   ggtitle("Histogram of residuals") # plot
 ```
-<img src="pictures/histogram.png" style="display: block; margin: auto;" />
+<img src="plots/histogram.png" style="display: block; margin: auto;" />
 
 The `EuStockMarkets` data set is an object of `mts` class. That means that it includes dates. We can take advantage of it and visualise predicted and observed values of `DAX ` on one plot dependent on time. To do it,`time.series` and `visualize` arguments are used:
 
@@ -154,6 +154,7 @@ model1 <- ols(dset = EuStockMarkets,
               visualize = T)
 model1$time.plot
 ```
+<img src="plots/predicted_vs_observed.png" style="display: block; margin: auto;" />
 
 ## 2.3 Multiple regression models
 
