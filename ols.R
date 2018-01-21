@@ -100,6 +100,10 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
     dset <- dset[,c(target, vars.split)]
   }
   
+  # Only rows without missing data
+  
+  dset <- dset[complete.cases(dset),]
+  
   intercept.string <- if(intercept == T){""}else{"-1"}
   ols.formula <- as.formula(paste0(target, "~", gsub(" ", "+", vars), intercept.string))
   model.original <- lm(formula = ols.formula, data = dset)
