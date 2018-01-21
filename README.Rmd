@@ -156,7 +156,7 @@ model1$time.plot
 ```
 <img src="plots/predicted_vs_observed.png" style="display: block; margin: auto;" />
 
-## 2.3 Multiple regression models
+## 2.3 Differencing and laggin variables
 
 Now we will proceed to building multiple models. At the moment objects of class `mts` are not handled, so at first our data set should be converted into a data frame. Then we can add some lagged variables. To lag regressors, we can use `lag` function:
 
@@ -192,6 +192,9 @@ and the number of produced combinations
 n.models <- length(vars)
 n.models
 ```
+
+## 2.4 Creating multiple regression models
+
 As we can see, in a moment we will build `r n.models` OLS models. To obtain them in one command, `ols_summary` function will be used:
 
 ```{r multiple_models1}
