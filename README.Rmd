@@ -326,6 +326,6 @@ mbm2
 knitr::kable(summary(mbm2))
 ```
 
-In this case, parallelization shortened the time required to run a function call. It should be taken into consideration that the number of models was `r 5831/n.models` times greater than previously.
+In this case, parallelization shortened the time required to run a function call. It should be taken into consideration that the number of models was 27 times greater than previously.
 
 As a rule of thumb, when dealing with a couple hundred of models, the computations should not be parallelized. When the number of models is at least a few thousands, additional cores can help.
