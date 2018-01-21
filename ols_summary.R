@@ -145,11 +145,9 @@ ols_summary <- function(dset.sum, target.sum, vars.sum, alpha.sum = .05,
     
     # Adding model nuber to the flat table with all the model stats
     
-    model.stats$model.num <- 1:num.models
-    
     models <- list("stats" = model.stats, "vars.stats" = model.vars)
   }
-  
+  models$stats$model.num <- 1:num.models
   return(models)
 }
 
