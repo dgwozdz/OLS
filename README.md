@@ -5,6 +5,8 @@ README
 
 The goal of functions in this repo is to semi automatically build Ordinary Least Squares (OLS) models on the basis of a set of declared variables. If the available data are time series, lagging and differencing is possible.
 
+ 
+
 1. Short description of the functions:
 --------------------------------------
 
