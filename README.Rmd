@@ -9,17 +9,17 @@ The goal of functions in this repo is to semi automatically build Ordinary Least
 
 &nbsp;
 
-#  1\. Short description of the functions
-
+#  1. Short description of the functions
+ 
 1. `ols`:         Function allows building one OLS model and performs statistical tests.
 2. `ols_summary`: Function allows building multiple OLS models and lets the user parallelization of computations (if required).
 3. `ncomb`:       Allows all possible combinations of a set of variables (including the ones after differencing).
 4. `lags`:        Allows lagging variables.
 5. `difs`:        Allows differencing variables.
-
+ 
 &nbsp;
 
-#  2\. Tutorial
+#  2. Tutorial
 
 This tutorial will teach you how to use above mentioned functions. After getting through below given examples, you'll be able to:
 
