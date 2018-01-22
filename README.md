@@ -3,7 +3,7 @@
 README
 ======
 
-The goal of functions in this repo is to semiautomatically build Ordinary Least Squares (OLS) models on the basis of a set of declared variables. If the available data are time series, lagging and differencing is possible.
+The goal of functions in this repo is to semi automatically build Ordinary Least Squares (OLS) models on the basis of a set of declared variables. If the available data are time series, lagging and differencing is possible.
 
 1. Short description of the functions:
 --------------------------------------
@@ -14,18 +14,19 @@ The goal of functions in this repo is to semiautomatically build Ordinary Least 
 4.  `lags`: Allows lagging variables.
 5.  `difs`: Allows differencing variables.
 
+ 
+
 2. Tutorial
 -----------
 
 This tutorial will teach you how to use above mentioned functions. After getting through below given examples, you'll be able to:
 
-1.  Required packages
-2.  Build one regression model and test it.
-3.  Visualize histogram of errors.
-4.  Difference and lag selected variables.
-5.  Build multiple regresssion models and test them.
-6.  Use parallelization while building multiple models.
-7.  Decide if utilizing parallelization actually shortens computation time.
+1.  Build one regression model and test it.
+2.  Visualize histogram of errors.
+3.  Difference and lag selected variables.
+4.  Build multiple regression models and test them.
+5.  Use parallelization while building multiple models.
+6.  Decide if utilizing parallelization actually shortens computation time.
 
 ### 2.0 Required packages
 
@@ -75,7 +76,7 @@ model1 <- ols(dset = EuStockMarkets,
               vars = "SMI CAC FTSE")
 ```
 
-The first agrument, `dset`, is the data set we want to use. `target` is our target variable; `vars` is a string contaning variable names separated by single blanks (spaces). Let't take a look at names of consecutive elements of `model1`:
+The first argument, `dset`, is the data set we want to use. `target` is our target variable; `vars` is a string containing variable names separated by single blanks (spaces). Let’s take a look at names of consecutive elements of `model1`:
 
 ``` r
 names(model1)
@@ -94,7 +95,16 @@ model1$stats
 |:-------|:-------------|----------:|------------:|---------:|---------:|----------:|--------:|-----------:|---------:|-----------:|-----------:|--------------:|---------:|-----------:|----------:|-----------:|----------:|-------------:|---------:|:------|-----:|:----------------------------------------------------------------------------------------------------------|
 | DAX    | SMI CAC FTSE |  0.9898478|    0.9898314|  803.3033|  60320.47|          0|  243.397|           0|  1803.221|           0|    47.01741|              0|  10.44616|           0|  0.9862875|           0|   144.7465|             0|  100.8572| TRUE  |  1860| (Intercept)*(-175.945668313583)+SMI*(0.49277225460085)+CAC*(0.495653787472762)+FTSE*(-0.0172026329222922) |
 
-The output presents a flat table, showing the target variable, the independent variables, statistics representing the model quality (R-Squared, adjusted R-Squared, RMSE) and some statistical tests: 1. **F**: significance test of all variables in the model. 2. **bp**: Breusch-Pagan heteroscedasticity test. 3. **bg**: Breusch-Godfrey autocorrelation test. 4. **reset**: RESET test (informs whether the linear model can be applied for such target and independent variables). 5. **ad**: Anderson-Darling normality of error term test. 6. **sw**: Shapiro-Wilk normality of error term test (for small samples, n&lt;20). 7. **chow**: Chow test checking stability of coefficients in time. 8. **max.vif**: Maximum VIF (Variance Inflation Factor) in the model. Additionally, the *tests* column informs whether the model complies with tests from points 2-7. *n* is the number of observations, on which the model was built. The last column shows the equation of a given regression.
+The output presents a flat table, showing the target variable, the independent variables, statistics representing the model quality (R-Squared, adjusted R-Squared, RMSE) and some statistical tests:
+
+1.  **F**: significance test of all variables in the model.
+2.  **bp**: Breusch-Pagan heteroscedasticity test.
+3.  **bg**: Breusch-Godfrey autocorrelation test.
+4.  **reset**: RESET specification test (informs whether the linear model can be applied for such target and independent variables).
+5.  **ad**: Anderson-Darling normality of error term test.
+6.  **sw**: Shapiro-Wilk normality of error term test (for small samples, n&lt;20).
+7.  **chow**: Chow test checking stability of coefficients in time.
+8.  **max.vif**: Maximum VIF (Variance Inflation Factor) in the model. Additionally, the *tests* column informs whether the model complies with tests from points 2-7. *n* is the number of observations, on which the model was built. The last column shows the equation of a given regression.
 
 The table `var.stats` show statistics of regressors:
 
@@ -128,7 +138,7 @@ model1["var.stats"]
     ## CAC                 CAC    0.49565379 2.999041e-180  12.47012
     ## FTSE               FTSE   -0.01720263  4.103735e-01  64.68514
 
-As mentioned above, multicollinearity ws observed. In order to ged rid of it, we can exclude the `SMI` index from the model:
+As mentioned above, multicollinearity was observed. In order to get rid of it, we can exclude the `SMI` index from the model:
 
 ``` r
 model2 <- ols(dset = EuStockMarkets,
@@ -143,8 +153,7 @@ model2$var.stats
 | CAC         |      0.8479211|        0|  6.194059|
 | FTSE        |      0.6217500|        0|  6.194059|
 
-2.2 Visualizations
-==================
+### 2.2 Visualizations
 
 We can output residuals of the regression by using the argument `output.residuals`:
 
@@ -162,9 +171,9 @@ qplot(model1[["output.residuals"]]) +
 
     ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
 
-![](README_files/figure-markdown_github/residuals-1.png) <img src="plots/histogram.png" style="display: block; margin: auto;" />
+![](README_files/figure-markdown_github/residuals-1.png)
 
-The `EuStockMarkets` data set is an object of `mts` class. That means that it includes dates. We can take advantage of it and visualise predicted and observed values of `DAX` on one plot dependent on time. To do it,`time.series` and `visualize` arguments are used:
+The `EuStockMarkets` data set is an object of `mts` class. That means that it includes dates. We can take advantage of it and visualize predicted and observed values of `DAX` on one plot dependent on time. To do it,`time.series` and `visualize` arguments are used:
 
 ``` r
 model1 <- ols(dset = EuStockMarkets,
@@ -177,10 +186,9 @@ model1$time.plot
 
     ## Don't know how to automatically pick scale for object of type yearmon. Defaulting to continuous.
 
-![](README_files/figure-markdown_github/predicted_vs_observed_plot-1.png) <img src="plots/predicted_vs_observed.png" style="display: block; margin: auto;" />
+![](README_files/figure-markdown_github/predicted_vs_observed_plot-1.png)
 
-2.3 Differencing and laggin variables
--------------------------------------
+### 2.3 Differencing and lagging variables
 
 Now we will proceed to building multiple models. At the moment objects of class `mts` are not handled, so at first our data set should be converted into a data frame. Then we can add some lagged variables. To lag regressors, we can use `lag` function:
 
@@ -192,7 +200,7 @@ EuStockMarkets <- lags(dset = EuStockMarkets,
      lag.vec = 1:4)
 ```
 
-`dset` is the data set, in which variables can be found. The argument`vars` selects variables, which should be lagged. `lag.vec` is a vector of lags which should be executed. In this case, there are four lags: the minimum lag is `1`, and the maximum is `4`. Lagged variables have a sufix `.<lag.order.`, e.g. the `SME` index lagged by with a lag of three periods is called `SMI.3`.
+`dset` is the data set, in which variables can be found. The argument`vars` selects variables, which should be lagged. `lag.vec` is a vector of lags which should be executed. In this case, there are four lags: the minimum lag is `1`, and the maximum is `4`. Lagged variables have a suffix `.<lag.order.`, e.g. the `SME` index lagged by with a lag of three periods is called `SMI.3`.
 
 Having lagged variables, we can proceed to obtaining vectors of all the possible combinations of lagged (and unlagged) regressors. To do this, we will use the function `ncomb`:
 
@@ -232,8 +240,7 @@ n.models
 
     ## [1] 215
 
-2.4 Creating multiple regression models
----------------------------------------
+### 2.4 Creating multiple regression models
 
 As we can see, in a moment we will build 215 OLS models. To obtain them in one command, `ols_summary` function will be used:
 
@@ -245,7 +252,7 @@ models <- ols_summary(dset.sum = EuStockMarkets,
 
 `dset.sum` is our converted data set, `target.sum` is target variable repeated `n.models` times (since we want to build such a number of regressions) and `vars.sum` is a vector of all combinations of regressors produced by `ncomb` function.
 
-The resulst are of the same structure as in case of our first model (obtained from `ols` function). The only additional column we get is `model.num`, which is a model number:
+The results are of the same structure as in case of our first model (obtained from `ols` function). The only additional column we get is `model.num`, which is a model number:
 
 ``` r
 models.stats <- models$stats
@@ -295,7 +302,7 @@ vars.stats[[185]]
 | CAC.4       | CAC.4       |     0.4829530|  0.0000000|  10.84197|
 | FTSE.4      | FTSE.4      |    -0.0416018|  0.0348734|  57.61019|
 
-What happens if a variable which is not in the data set is declared in`ols_summary`? Let's check it out:
+What happens if a variable which is not in the data set is declared in `ols_summary`? Let's check it out:
 
 ``` r
 models <- ols_summary(dset.sum = EuStockMarkets,
@@ -308,8 +315,7 @@ models <- ols_summary(dset.sum = EuStockMarkets,
     ##  Nonexistent.Variable1, Nonexistent.Variable2
     ##  is/are not in the data set.
 
-2.5 Parallelization
--------------------
+### 2.5 Parallelization
 
 We can parallelize our computations by using `do.parallel` argument. By default, the number of used cores is the `maximum.number.of.cores - 2`. This variable can be controlled by `n.cores`:
 
@@ -323,8 +329,7 @@ models <- ols_summary(dset.sum = EuStockMarkets,
 
 Parallelization is turned off by default.
 
-2.6 Benchmark of parallelized and non-parallelized computations
----------------------------------------------------------------
+### 2.6 Benchmark of parallelized and non-parallelized computations
 
 Do parallelized calculations actually execute faster than non-parallelized ones? In order to check it, the library `microbenchmark` was used, i.e. each function was ran 100 times:
 
@@ -352,9 +357,9 @@ The table below presents statistic (mean, median etc.) of time required to execu
 | not.parallelized |   9.029895|   9.276693|   9.632542|   9.420636|   9.742205|  12.48951|    100|
 | parallelized     |  10.462151|  10.691725|  11.432108|  11.103139|  11.789745|  20.04804|    100|
 
-As it can be seen, the parallelization did not reduce calculation time. Such a result comes from time required to initialize a cluster, which takes a couple of seconds. If cacluations of ~200 regressions last a few seconds, employing additional cores does'nt make sense.
+As it can be seen, the parallelization did not reduce calculation time. Such a result comes from time required to initialize a cluster, which takes a couple of seconds. If calculations of ~200 regressions last a few seconds, employing additional cores doesn’t make sense.
 
-Will such a phenomenon hold for larger data? Let's find out by adding lags up to 16 and running the benchmark again (this time only 10 times due to the comuptations cost). In each iteration of each function, 5831 models will be build:
+Will such a phenomenon hold for larger data? Let's find out by adding lags up to 16 and running the benchmark again (this time only 10 times due to the computations cost). In each iteration of each function, 5831 models will be build:
 
 ``` r
 vars2 <- ncomb(vec = c("SMI", "CAC", "FTSE"),
