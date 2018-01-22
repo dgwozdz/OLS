@@ -1,3 +1,12 @@
+---
+title: "Creating multiple OLS models in parallel"
+author: "dgwozdz"
+date: "22 JAN 2018"
+output:  
+  html_document:
+    keep_md: true
+---
+
 # README
 
 The goal of functions in this repo is to semiautomatically build Ordinary Least Squares (OLS) models on the basis of a set of declared variables. If the available data are time series, lagging and differencing is possible.
@@ -79,7 +88,7 @@ We can see that the object consists of 5 elements. We will start our analysis wi
 ```{r first_model_stats_show, results = 'hide'}
 model1$stats
 ```
-```{r echo = FALSE, results = 'asis'}
+```{r echo = FALSE}
 knitr::kable(model1$stats)
 ```
 
