@@ -7,8 +7,8 @@ The goal of functions in this repo is to semi automatically build Ordinary Least
 
  
 
-1. Short description of the functions:
---------------------------------------
+1. Short description of the functions
+=====================================
 
 1.  `ols`: Function allows building one OLS model and performs statistical tests.
 2.  `ols_summary`: Function allows building multiple OLS models and lets the user parallelization of computations (if required).
@@ -19,7 +19,7 @@ The goal of functions in this repo is to semi automatically build Ordinary Least
  
 
 2. Tutorial
------------
+===========
 
 This tutorial will teach you how to use above mentioned functions. After getting through below given examples, you'll be able to:
 
