@@ -132,7 +132,7 @@ model2$var.stats
 knitr::kable(model2$var.stats, row.names = F)
 ```
 
-# 2.2 Visualizations
+### 2.2 Visualizations
 
 We can output residuals of the regression by using the argument `output.residuals`:
 
@@ -161,7 +161,7 @@ model1$time.plot
 ```
 <img src="plots/predicted_vs_observed.png" style="display: block; margin: auto;" />
 
-## 2.3 Differencing and laggin variables
+### 2.3 Differencing and laggin variables
 
 Now we will proceed to building multiple models. At the moment objects of class `mts` are not handled, so at first our data set should be converted into a data frame. Then we can add some lagged variables. To lag regressors, we can use `lag` function:
 
@@ -198,7 +198,7 @@ n.models <- length(vars)
 n.models
 ```
 
-## 2.4 Creating multiple regression models
+### 2.4 Creating multiple regression models
 
 As we can see, in a moment we will build `r n.models` OLS models. To obtain them in one command, `ols_summary` function will be used:
 
@@ -246,7 +246,7 @@ models <- ols_summary(dset.sum = EuStockMarkets,
                                    "Nonexistent.Variable2", vars))
 ```
 
-## 2.5 Parallelization
+### 2.5 Parallelization
 
 We can parallelize our computations by using `do.parallel` argument. By default, the number of used cores is the `maximum.number.of.cores - 2`. This variable can be controlled by `n.cores`:
 
@@ -260,7 +260,7 @@ models <- ols_summary(dset.sum = EuStockMarkets,
 
 Parallelization is turned off by default.
 
-## 2.6 Benchmark of parallelized and non-parallelized computations
+### 2.6 Benchmark of parallelized and non-parallelized computations
 
 Do parallelized calculations actually execute faster than non-parallelized ones? In order to check it, the library `microbenchmark` was used, i.e. each function was ran 100 times:
 
