@@ -5,8 +5,6 @@ README
 
 The goal of functions in this repo is to semi automatically build Ordinary Least Squares (OLS) models on the basis of a set of declared variables. If the available data is time series, lagging and differencing is possible.
 
- 
-
 ### 1. Short description of the functions
 
 1.  `ols`: Function allows building one OLS model and performs statistical tests.
@@ -14,8 +12,6 @@ The goal of functions in this repo is to semi automatically build Ordinary Least
 3.  `ncomb`: Allows all possible combinations of a set of variables (including the ones after differencing).
 4.  `lags`: Allows lagging variables.
 5.  `difs`: Allows differencing variables.
-
- 
 
 ### 2. Tutorial
 
