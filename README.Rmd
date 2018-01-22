@@ -2,9 +2,7 @@
 title: "Creating multiple OLS models in parallel"
 author: "dgwozdz"
 date: "22 JAN 2018"
-output:  
-  html_document:
-    keep_md: true
+output: rmarkdown::github_document
 ---
 
 # README
