@@ -79,7 +79,7 @@ We can see that the object consists of 5 elements. We will start our analysis wi
 ```{r first_model_stats_show, results = 'hide'}
 model1$stats
 ```
-```{r echo = F, results = 'asis'}
+```{r echo = FALSE, results = 'asis'}
 knitr::kable(model1$stats)
 ```
 
