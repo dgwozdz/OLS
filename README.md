@@ -1,6 +1,9 @@
 22 JAN 2018
 
-## Building multiple Ordinary Least Squares (OLS) models in parallel
+README
+======
+
+# Building multiple Ordinary Least Squares (OLS) models in parallel
 
 The goal of functions in this repo is to semi automatically build Ordinary Least Squares (OLS) models on the basis of a set of declared variables. If the available data is time series, lagging and differencing is possible.
 
