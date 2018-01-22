@@ -1,6 +1,3 @@
-Creating multiple OLS models in parallel
-================
-dgwozdz
 22 JAN 2018
 
 README
