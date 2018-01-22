@@ -2,7 +2,7 @@
 # Author:             Damian Gwozdz (DG)
 # Function:           ols
 # Creation date:      15JUN2017
-# Last modified:      15SEP2017
+# Last modified:      22JAN2018
 # Description:        Function to build an Ordinary
 #                     Least Squares models and test it
 # Required functions: -
@@ -59,20 +59,20 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
   ## parameters
   # dset <- iris
   # target <- "Sepal.Length"
-  # vars <- "Sepal.Width Petal.Width"
+  # vars <- "Sepal.Width"
   # time.var <- NULL
   # dset <- EuStockMarkets
   # target <- "DAX"
   # vars <- "FTSE CAC"
   # alpha <- .05
-  # intercept <- T
+  # intercept <- F
   # visualize <- T
   # output.residuals <- T
   # time.series <- F
   # time.var <- NULL
   # dset <- EuStockMarkets2
   
-
+  
   
   # If a ts object is declared as an input data set, transform it
   # to a data frame
@@ -110,16 +110,30 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
   model <- summary(model.original)
   
   # Model stats
+  if(intercept){
+    model.stats <- data.frame(target = NA, vars = NA, R2 = NA,
+                              adjusted.R2 = NA, RMSE = NA, F.stat = NA, F.p.value = NA,
+                              bp.stat = NA, bp.p.value = NA, bg.stat = NA,
+                              bg.p.value = NA, reset.stat = NA,
+                              reset.p.value = NA, ad.stat = NA, ad.p.value = NA,
+                              sw.stat = NA, sw.p.value = NA,
+                              chow.stat = NA, chow.p.value = NA,
+                              significance = NA, max.p.value = NA,
+                              max.vif = NA,
+                              tests = NA, n = NA, equation = NA)
+  }else{
+    model.stats <- data.frame(target = NA, vars = NA, R2 = NA,
+                              adjusted.R2 = NA, RMSE = NA, F.stat = NA,
+                              F.p.value = NA, bg.stat = NA,
+                              bg.p.value = NA, reset.stat = NA,
+                              reset.p.value = NA, ad.stat = NA, ad.p.value = NA,
+                              sw.stat = NA, sw.p.value = NA,
+                              chow.stat = NA, chow.p.value = NA,
+                              significance = NA, max.p.value = NA,
+                              max.vif = NA,
+                              tests = NA, n = NA, equation = NA)
+  }
   
-  model.stats <- data.frame(target = NA, vars = NA, R2 = NA,
-                            adjusted.R2 = NA, RMSE = NA, F.stat = NA, F.p.value = NA,
-                            bp.stat = NA, bp.p.value = NA, bg.stat = NA,
-                            bg.p.value = NA, reset.stat = NA,
-                            reset.p.value = NA, ad.stat = NA, ad.p.value = NA,
-                            sw.stat = NA, sw.p.value = NA,
-                            chow.stat = NA, chow.p.value = NA,
-                            max.vif = NA,
-                            tests = NA, n = NA, equation = NA)
   model.stats$target <- target
   model.stats$vars <- vars
   model.stats$R2 <- model$r.squared
@@ -134,10 +148,11 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
                               model$fstatistic[3], lower=FALSE)
   
   # Model tests
-  
-  breusch.pagan <- bptest(model)
-  model.stats$bp.stat <- breusch.pagan$statistic
-  model.stats$bp.p.value <- breusch.pagan$p.value
+  if(intercept){
+    breusch.pagan <- bptest(model)
+    model.stats$bp.stat <- breusch.pagan$statistic
+    model.stats$bp.p.value <- breusch.pagan$p.value
+  }
   
   breusch.godfrey <- bgtest(model)
   model.stats$bg.stat <- breusch.godfrey$statistic
@@ -179,14 +194,25 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
     }
   }
   
+  model.stats$significance <- if(max(model.vars$p.value<=alpha)) T else F
+  model.stats$max.p.value <- max(model.vars$p.value)
   model.stats$max.vif <- if(length(vars.split) == 1)NA else max(model.vars$vif, na.rm = T)
   
-  model.stats$tests <- if(model.stats$bp.p.value<alpha &
-                           model.stats$bg.p.value<alpha &
-                           model.stats$reset.p.value<alpha &
-                           model.stats$ad.p.value<alpha &
-                           model.stats$sw.p.value<alpha &
-                          model.stats$chow.p.value<alpha)T else F
+  if(intercept){
+    model.stats$tests <- if(model.stats$bp.p.value<alpha &
+                            model.stats$bg.p.value<alpha &
+                            model.stats$reset.p.value<alpha &
+                            model.stats$ad.p.value<alpha &
+                            model.stats$sw.p.value<alpha &
+                            model.stats$chow.p.value<alpha)T else F
+  }else{
+    model.stats$tests <- if(model.stats$bg.p.value<alpha &
+                            model.stats$reset.p.value<alpha &
+                            model.stats$ad.p.value<alpha &
+                            model.stats$sw.p.value<alpha &
+                            model.stats$chow.p.value<alpha)T else F
+  }
+  
   model.stats$n <- nrow(dset)
   model.stats$equation <- paste0(paste0(as.character(model.vars$var), sep = "*"),
                                  paste0("(", model.vars$coef , ")"), collapse = "+")
@@ -219,8 +245,8 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
       dset_ggplot <- reshape2::melt(dset[,c(target, "predicted", time.var)],
                                     id = time.var)
       time.series.plot <- ggplot(data=dset_ggplot,
-             aes_string(x = time.var, y = "value",
-                        colour = "variable", group = "variable")) +
+                                 aes_string(x = time.var, y = "value",
+                                            colour = "variable", group = "variable")) +
         geom_line() +
         xlab("Time") +
         ylab(target) +
@@ -252,8 +278,8 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
   }
   
   return(list(stats = model.stats, var.stats = model.vars, plot = model.plot,
-                output.residuals = model.errors,
-                time.plot = time.series.plot))
+              output.residuals = model.errors,
+              time.plot = time.series.plot))
 }
 
 ### Examples

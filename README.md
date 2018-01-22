@@ -100,7 +100,12 @@ The output presents a flat table, showing the target variable, the independent v
 5.  **ad**: Anderson-Darling normality of error term test.
 6.  **sw**: Shapiro-Wilk normality of error term test (for small samples, n&lt;20).
 7.  **chow**: Chow test checking stability of coefficients in time.
-8.  **max.vif**: Maximum VIF (Variance Inflation Factor) in the model. Additionally, the *tests* column informs whether the model complies with tests from points 2-7. *n* is the number of observations, on which the model was built. The last column shows the equation of a given regression.
+8.  **max.vif**: Maximum VIF (Variance Inflation Factor) in the model.
+9.  **significance**: point out whether all variable in a model are statistically significant at determined level (by default: 5%).
+10. **max.p.value**: shows the p.value of *the least significant* variable. 11. 11. **tests**: column informs whether the model complies with tests from points 2-7.
+11. **n**: number of observations, on which the model was built. The last column shows the equation of a given regression.
+
+Last but not least, the column **equation** presents model equation.
 
 The table `var.stats` show statistics of regressors:
 
@@ -148,6 +153,33 @@ model2$var.stats
 | (Intercept) |  -1575.3045205|        0|        NA|
 | CAC         |      0.8479211|        0|  6.194059|
 | FTSE        |      0.6217500|        0|  6.194059|
+
+It is also possible to build a model without an intercept. Such an action is controlled by the parameter `intercept`:
+
+``` r
+model3 <- ols(dset = EuStockMarkets,
+              target = "DAX",
+              vars = "CAC FTSE",
+              intercept = F)
+```
+
+    ## Warning in vif.default(model.original): No intercept: vifs may not be
+    ## sensible.
+
+``` r
+model3$var.stats
+```
+
+| target | vars     |         R2|  adjusted.R2|      RMSE|    F.stat|  F.p.value|   bg.stat|  bg.p.value|  reset.stat|  reset.p.value|   ad.stat|  ad.p.value|    sw.stat|  sw.p.value|  chow.stat|  chow.p.value| significance |  max.p.value|   max.vif| tests |     n| equation                                         |
+|:-------|:---------|----------:|------------:|---------:|---------:|----------:|---------:|-----------:|-----------:|--------------:|---------:|-----------:|----------:|-----------:|----------:|-------------:|:-------------|------------:|---------:|:------|-----:|:-------------------------------------------------|
+| DAX    | CAC FTSE |  0.9769045|    0.9768796|  670.5558|  39295.28|          0|  1854.851|           0|    8859.123|              0|  138.9562|           0|  0.7871347|           0|   3803.564|             0| TRUE         |            0|  88.15412| TRUE  |  1860| CAC*(0.321755922999695)+FTSE*(0.536557076690009) |
+
+| var  |       coef|  p.value|       vif|
+|:-----|----------:|--------:|---------:|
+| CAC  |  0.3217559|        0|  88.15412|
+| FTSE |  0.5365571|        0|  88.15412|
+
+In such case Breusch-Pagan test won't be executed (it requires an intercept).
 
 ### 2.2 Visualizations
 

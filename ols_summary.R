@@ -2,7 +2,7 @@
 # Author:             Damian Gwozdz (DG)
 # Function:           ols
 # Creation date:      15JUN2017
-# Last modified:      30AUG201
+# Last modified:      22JAN2018
 # Description:        Function to build multiple Ordinary
 #                     Least Squares models in a parallelized way
 # Required functions: ols
@@ -62,17 +62,34 @@ ols_summary <- function(dset.sum, target.sum, vars.sum, alpha.sum = .05,
   num.models <- length(vars.sum)
   num.NA <- rep(NA, num.models)
   
+  if(intercept.sum){
+    model.stats <- data.frame(target = num.NA, vars = num.NA, R2 = num.NA,
+                              adjusted.R2 = num.NA, RMSE = num.NA, F.stat = num.NA,
+                              F.p.value = num.NA, bp.stat = num.NA,
+                              bp.p.value = num.NA, bg.stat = num.NA,
+                              bg.p.value = num.NA, reset.stat = num.NA,
+                              reset.p.value = num.NA, ad.stat = num.NA,
+                              ad.p.value = num.NA, sw.stat = num.NA,
+                              sw.p.value = num.NA, chow.stat = num.NA,
+                              chow.p.value = num.NA,
+                              significance = num.NA, max.p.value = num.NA,
+                              max.vif = num.NA,
+                              tests = num.NA, n = num.NA, equation = num.NA)
+  }else{
+    model.stats <- data.frame(target = num.NA, vars = num.NA, R2 = num.NA,
+                              adjusted.R2 = num.NA, RMSE = num.NA, F.stat = num.NA,
+                              F.p.value = num.NA,
+                              bg.stat = num.NA, bg.p.value = num.NA,
+                              reset.stat = num.NA,
+                              reset.p.value = num.NA, ad.stat = num.NA,
+                              ad.p.value = num.NA, sw.stat = num.NA,
+                              sw.p.value = num.NA, chow.stat = num.NA,
+                              chow.p.value = num.NA,
+                              significance = num.NA, max.p.value = num.NA,
+                              max.vif = num.NA,
+                              tests = num.NA, n = num.NA, equation = num.NA)
+  }
   
-  model.stats <- data.frame(target = num.NA, vars = num.NA, R2 = num.NA,
-                            adjusted.R2 = num.NA, RMSE = num.NA, F.stat = num.NA,
-                            F.p.value = num.NA, bp.stat = num.NA,
-                            bp.p.value = num.NA, bg.stat = num.NA,
-                            bg.p.value = num.NA, reset.stat = num.NA,
-                            reset.p.value = num.NA, ad.stat = num.NA,
-                            ad.p.value = num.NA, sw.stat = num.NA,
-                            sw.p.value = num.NA, chow.stat = num.NA,
-                            chow.p.value = num.NA, max.vif = num.NA,
-                            tests = num.NA, n = num.NA, equation = num.NA)
   model.vars <- vector(mode = "list", length = num.models)
   
   
