@@ -238,7 +238,7 @@ model1$time.plot
 
     ## Don't know how to automatically pick scale for object of type yearmon. Defaulting to continuous.
 
-![](README_files/figure-markdown_github/predicted_vs_observed_plot2-1.png) We can see that the plots are identical.
+![](README_files/figure-markdown_github/predicted_vs_observed_plot2-1.png)
 
 Last but not least, it is possible to plot predicted and observed value even for . The object is produced by `ols` when `visualize` is set to `TRUE` and is simply called `plot`. This time we will use `iris` data set:
 
