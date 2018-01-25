@@ -1,9 +1,6 @@
-22 JAN 2018
 
 README
 ======
-
-# Building multiple Ordinary Least Squares (OLS) models in parallel
 
 The goal of functions in this repo is to semi automatically build Ordinary Least Squares (OLS) models on the basis of a set of declared variables. If the available data is time series, lagging and differencing is possible.
 
@@ -37,6 +34,7 @@ install.packages("car")
 install.packages("nortest")
 install.packages("scales")
 install.packages("strucchange")
+install.packages("zoo")
 install.packages("lubridate")
 install.packages("nortest")
 install.packages("microbenchmark")
@@ -209,14 +207,50 @@ The `EuStockMarkets` data set is an object of `mts` class. That means that it in
 model1 <- ols(dset = EuStockMarkets,
               target = "DAX",
               vars = "CAC FTSE",
-              time.series  = T,
-              visualize = T)
+              visualize = T,
+              time.series  = T)
 model1$time.plot
 ```
 
     ## Don't know how to automatically pick scale for object of type yearmon. Defaulting to continuous.
 
 ![](README_files/figure-markdown_github/predicted_vs_observed_plot-1.png)
+
+However, data usually comes in the form of data frames. In such case, `time.plot` can be produced as well by pointing out the time variable in the data set. Exemplyfing, we will obtain the time variable from `EuStockMarkets`,transform it to a data frame and add the extracted time:
+
+``` r
+library(zoo)
+date <- as.yearmon(time(EuStockMarkets))
+EuStockMarkets <- data.frame(EuStockMarkets)
+EuStockMarkets$date <- date
+```
+
+Now, let's build our model again, this time with calling the `time.var` argument and setting its value to previously obtained `date`:
+
+``` r
+model1 <- ols(dset = EuStockMarkets,
+              target = "DAX",
+              vars = "CAC FTSE",
+              visualize = T,
+              time.var  = "date")
+model1$time.plot
+```
+
+    ## Don't know how to automatically pick scale for object of type yearmon. Defaulting to continuous.
+
+![](README_files/figure-markdown_github/predicted_vs_observed_plot2-1.png) We can see that the plots are identical.
+
+Last but not least, it is possible to plot predicted and observed value even for . The object is produced by `ols` when `visualize` is set to `TRUE` and is simply called `plot`. This time we will use `iris` data set:
+
+``` r
+model2 <- ols(dset = iris,
+              target = "Sepal.Length",
+              vars = "Sepal.Width Petal.Length",
+              visualize = T)
+model2$plot
+```
+
+![](README_files/figure-markdown_github/predicted_vs_observed_not_time_series-1.png)
 
 ### 2.3 Differencing and lagging variables
 
