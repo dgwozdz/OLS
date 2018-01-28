@@ -1,3 +1,4 @@
+28 JAN 2018
 
 README
 ======
@@ -238,7 +239,7 @@ model1$time.plot
 
     ## Don't know how to automatically pick scale for object of type yearmon. Defaulting to continuous.
 
-![](README_files/figure-markdown_github/predicted_vs_observed_plot2-1.png)
+![](README_files/figure-markdown_github/predicted_vs_observed_plot2-1.png) We can see that the plots are identical.
 
 Last but not least, it is possible to plot predicted and observed value even for . The object is produced by `ols` when `visualize` is set to `TRUE` and is simply called `plot`. This time we will use `iris` data set:
 
@@ -254,7 +255,7 @@ model2$plot
 
 ### 2.3 Differencing and lagging variables
 
-Now we will proceed to building multiple models. At the moment objects of class `mts` are not handled, so at first our data set should be converted into a data frame. Then we can add some lagged variables. To lag regressors, we can use `lag` function:
+Now we will proceed to building multiple models. At the moment objects of class `mts` are not handled, so at first our data set should be converted into a data frame (if it hasn't been done earlier). Then we can add some lagged variables. To lag regressors, we can use `lag` function:
 
 ``` r
 EuStockMarkets <- data.frame(EuStockMarkets)
@@ -395,7 +396,7 @@ Parallelization is turned off by default.
 
 ### 2.6 Benchmark of parallelized and non-parallelized computations
 
-Do parallelized calculations actually execute faster than non-parallelized ones? In order to check it, the library `microbenchmark` was used, i.e. each function was ran 100 times:
+Do parallelized calculations actually execute faster than non-parallelized ones? In order to check it, the library `microbenchmark` was used, i.e. each function was ran 100 times. The comparison includes running the same calculations on one, two and three cores:
 
 ``` r
 mbm <- microbenchmark(
@@ -404,10 +405,16 @@ mbm <- microbenchmark(
                                                vars.sum = vars,
                                                do.parallel = F,
                                                progress.bar = F)},
-  "parallelized" = {models <- ols_summary(dset.sum = EuStockMarkets,
+  "parallelized.2.cores" = {models <- ols_summary(dset.sum = EuStockMarkets,
                                           target.sum = rep("DAX", n.models),
                                           vars.sum = vars,
-                                          do.parallel = T)})
+                                          do.parallel = T,
+                                          n.cores = 2)},
+  "parallelized.3.cores" = {models <- ols_summary(dset.sum = EuStockMarkets,
+                                                  target.sum = rep("DAX", n.models),
+                                                  vars.sum = vars,
+                                                  do.parallel = T,
+                                                  n.cores = 3)})
 ```
 
 ``` r
@@ -416,14 +423,15 @@ mbm
 
 The table below presents statistic (mean, median etc.) of time required to execute a function (in seconds):
 
-| expr             |        min|         lq|       mean|     median|         uq|       max|  neval|
-|:-----------------|----------:|----------:|----------:|----------:|----------:|---------:|------:|
-| not.parallelized |   9.029895|   9.276693|   9.632542|   9.420636|   9.742205|  12.48951|    100|
-| parallelized     |  10.462151|  10.691725|  11.432108|  11.103139|  11.789745|  20.04804|    100|
+| expr                 |        min|         lq|       mean|     median|         uq|       max|  neval|
+|:---------------------|----------:|----------:|----------:|----------:|----------:|---------:|------:|
+| not.parallelized     |   9.054509|   9.138603|   9.375295|   9.187071|   9.464257|  14.57375|    100|
+| parallelized.2.cores |  10.233477|  10.374942|  10.763843|  10.511067|  11.053782|  12.77917|    100|
+| parallelized.3.cores |  10.872229|  11.059795|  11.316901|  11.139311|  11.471231|  17.23292|    100|
 
 As it can be seen, the parallelization did not reduce calculation time. Such a result comes from time required to initialize a cluster, which takes a couple of seconds. If calculations of ~200 regressions last a few seconds, employing additional cores doesn’t make sense.
 
-Will such a phenomenon hold for larger data? Let's find out by adding lags up to 16 and running the benchmark again (this time only 10 times due to the computations cost). In each iteration of each function, 5831 models will be build:
+Will such a phenomenon hold for larger data? Let's find out by adding lags up to 16 and running the benchmark again (this time only 30 times due to the computations cost). In each iteration of each function, 5831 models will be build:
 
 ``` r
 vars2 <- ncomb(vec = c("SMI", "CAC", "FTSE"),
@@ -442,11 +450,17 @@ mbm2 <- microbenchmark(
                                                vars.sum = vars2,
                                                do.parallel = F,
                                                progress.bar = F)},
-  "parallelized" = {models <- ols_summary(dset.sum = EuStockMarkets,
+  "parallelized.2.cores" = {models <- ols_summary(dset.sum = EuStockMarkets,
                                           target.sum = rep("DAX", n.models2),
                                           vars.sum = vars2,
-                                          do.parallel = T)},
-  times = 10)
+                                          do.parallel = T,
+                                          n.cores = 2)},
+  "parallelized.3.cores" = {models <- ols_summary(dset.sum = EuStockMarkets,
+                                                  target.sum = rep("DAX", n.models2),
+                                                  vars.sum = vars2,
+                                                  do.parallel = T,
+                                                  n.cores = 3)},
+  times = 30)
 mbm2
 ```
 
@@ -454,11 +468,12 @@ mbm2
 mbm2
 ```
 
-| expr             |       min|        lq|      mean|    median|        uq|       max|  neval|
-|:-----------------|---------:|---------:|---------:|---------:|---------:|---------:|------:|
-| not.parallelized |  260.8858|  261.0712|  268.7942|  268.1902|  275.5850|  278.8869|     10|
-| parallelized     |  160.4067|  162.7916|  164.4797|  163.9955|  165.0944|  170.4291|     10|
+| expr                 |       min|        lq|      mean|    median|        uq|       max|  neval|
+|:---------------------|---------:|---------:|---------:|---------:|---------:|---------:|------:|
+| not.parallelized     |  263.6426|  264.5064|  264.7084|  264.7030|  265.0228|  265.5293|     30|
+| parallelized.2.cores |  158.8773|  159.3089|  159.6111|  159.5387|  159.9745|  160.5580|     30|
+| parallelized.3.cores |  136.7748|  137.5200|  137.7300|  137.7246|  138.0294|  138.6247|     30|
 
-In this case, parallelization shortened the time required to run a function call. It should be taken into consideration that the number of models was 27 times greater than previously.
+In this case, parallelization shortened the time required to run a function call. It should be taken into consideration that the number of models was 27 times greater than previously. Interestingly, the addition of the third core reduced the computation time on average only by ~ 12 seconds (reduction by about 13%).
 
 As a rule of thumb, when dealing with a couple hundred of models, the computations should not be parallelized. When the number of models is at least a few thousands, additional cores can help.
