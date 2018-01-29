@@ -3,7 +3,7 @@
 README
 ======
 
-The goal of functions in this repo is to __semi automatically build Ordinary Least Squares (OLS) models on the basis of a set of declared variables in parallel__. If the available data is time series, __lagging and differencing of selected variables is possible__.
+The goal of functions in this repo is to semi automatically build Ordinary Least Squares (OLS) models on the basis of a set of declared variables. If the available data is time series, lagging and differencing is possible.
 
 ### 1. Short description of the functions
 
@@ -13,7 +13,7 @@ The goal of functions in this repo is to __semi automatically build Ordinary Lea
 4.  `lags`: Allows lagging variables.
 5.  `difs`: Allows differencing variables.
 6.  `PRESS`: Computes PRESS statistic required to calculate predicted R-squared.
-7.  `pred_r_squared`:Computes predicted R-squared.
+7.  `pred_r_squared`: Computes predicted R-squared.
 
 ### 2. Tutorial
 
@@ -312,7 +312,7 @@ mbm.pred.R2
 | pred.R2    |  4671.14071|  4875.92802|  5141.06066|  5069.80760|  5291.08432|  6752.8239|    100|
 | no.pred.R2 |    43.77589|    45.09869|    49.16099|    47.61333|    50.61435|    87.3956|    100|
 
-As we can see, the computation time rockets on average by 104.576016 times from 0.049161 to 0.049161 seconds!
+As we can see, the computation time rockets on average by 104.576016 times from 0.049161 to 5.1410607 seconds!
 
 ### 2.4 Differencing and lagging variables
 

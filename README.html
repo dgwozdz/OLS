@@ -36,7 +36,7 @@ body {
 <li><code>lags</code>: Allows lagging variables.</li>
 <li><code>difs</code>: Allows differencing variables.</li>
 <li><code>PRESS</code>: Computes PRESS statistic required to calculate predicted R-squared.</li>
-<li><code>pred_r_squared</code>:Computes predicted R-squared.</li>
+<li><code>pred_r_squared</code>: Computes predicted R-squared.</li>
 </ol>
 <h3 id="tutorial">2. Tutorial</h3>
 <p>This tutorial will teach you how to use above mentioned functions. After getting through below given examples, you'll be able to:</p>
@@ -652,7 +652,7 @@ mbm.pred.R2</code></pre></div>
 </tr>
 </tbody>
 </table>
-<p>As we can see, the computation time rockets on average by 104.576016 times from 0.049161 to 0.049161 seconds!</p>
+<p>As we can see, the computation time rockets on average by 104.576016 times from 0.049161 to 5.1410607 seconds!</p>
 <h3 id="differencing-and-lagging-variables">2.4 Differencing and lagging variables</h3>
 <p>Now we will proceed to building multiple models. At the moment objects of class <code>mts</code> are not handled, so at first our data set should be converted into a data frame (if it hasn't been done earlier). Then we can add some lagged variables. To lag regressors, we can use <code>lag</code> function:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">EuStockMarkets &lt;-<span class="st"> </span><span class="kw">data.frame</span>(EuStockMarkets)
