@@ -2,10 +2,10 @@
 # Author:             Damian Gwozdz (DG)
 # Function:           ols
 # Creation date:      15JUN2017
-# Last modified:      22JAN2018
+# Last modified:      28JAN2018
 # Description:        Function to build an Ordinary
 #                     Least Squares models and test it
-# Required functions: -
+# Required functions: PRESS, pred_r_squared
 #
 #   Utilized tests:
 #     1) Breusch-Pagan (heteroscedasticity)
@@ -33,16 +33,17 @@ library(strucchange) # chow test
 library(lubridate)
 
 
-ols <- function(dset, target, vars, alpha = .05, intercept = T,
-                visualize = F, output.residuals = F,
-                time.series = F, time.var = NULL){
+ols <- function(dset, target, vars, alpha = .05, intercept = TRUE,
+                visualize = FALSE, output.residuals = FALSE,
+                time.series = FALSE, time.var = NULL,
+                pred.R2 = FALSE){
   
   #====================================================================
   # PARAMETERS:
   #
   # 1)  dset - input data set
   # 2)  target - target variable declared as a string
-  # 3)  vars - indepependent variables declared as a string
+  # 3)  vars - independent variables declared as a string
   #             with blanks as separators
   # 4)  alpha - significance level
   # 5)  intercept - a boolean value indicating whether the built model
@@ -54,6 +55,9 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
   # 8)  time.series - a boolean value indicating the name of the variable
   #                 which indicates time
   # 9)  time.var - variable identifying time
+  # 10) pred.R2 - a boolean value indicating whether predicted R-squared
+  #               should be computed; this option is turned off by
+  #               default due to computation time
   #====================================================================
   
   ## parameters
@@ -65,11 +69,12 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
   # target <- "DAX"
   # vars <- "FTSE CAC"
   # alpha <- .05
-  # intercept <- F
-  # visualize <- T
+  # intercept <- T
+  # visualize <- F
   # output.residuals <- T
   # time.series <- F
   # time.var <- NULL
+  # pred.R2 <- FALSE
   # dset <- EuStockMarkets2
   
   
@@ -90,9 +95,9 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
   
   vars.split <- unlist(strsplit(vars, " "))
   
-  nvars <- if(intercept == T){length(vars.split)+1}else{length(vars.split)}
+  nvars <- if(intercept){length(vars.split)+1}else{length(vars.split)}
   
-  if(time.series == T){
+  if(time.series){
     dset <- dset[,c(target, vars.split, "date.custom")]
   }else if(!is.null(time.var)){
     dset <- dset[,c(target, vars.split, time.var)]
@@ -110,30 +115,24 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
   model <- summary(model.original)
   
   # Model stats
-  if(intercept){
-    model.stats <- data.frame(target = NA, vars = NA, R2 = NA,
-                              adjusted.R2 = NA, RMSE = NA, F.stat = NA, F.p.value = NA,
-                              bp.stat = NA, bp.p.value = NA, bg.stat = NA,
-                              bg.p.value = NA, reset.stat = NA,
-                              reset.p.value = NA, ad.stat = NA, ad.p.value = NA,
-                              sw.stat = NA, sw.p.value = NA,
-                              chow.stat = NA, chow.p.value = NA,
-                              significance = NA, max.p.value = NA,
-                              max.vif = NA,
-                              tests = NA, n = NA, equation = NA)
-  }else{
-    model.stats <- data.frame(target = NA, vars = NA, R2 = NA,
-                              adjusted.R2 = NA, RMSE = NA, F.stat = NA,
-                              F.p.value = NA, bg.stat = NA,
-                              bg.p.value = NA, reset.stat = NA,
-                              reset.p.value = NA, ad.stat = NA, ad.p.value = NA,
-                              sw.stat = NA, sw.p.value = NA,
-                              chow.stat = NA, chow.p.value = NA,
-                              significance = NA, max.p.value = NA,
-                              max.vif = NA,
-                              tests = NA, n = NA, equation = NA)
-  }
+  model.stats <- data.frame(target = NA, vars = NA, R2 = NA,
+                            adjusted.R2 = NA, RMSE = NA,
+                            pred.R2 = NA, AIC = NA, BIC = NA,
+                            F.stat = NA, F.p.value = NA,
+                            bp.stat = NA, bp.p.value = NA, bg.stat = NA,
+                            bg.p.value = NA, reset.stat = NA,
+                            reset.p.value = NA, ad.stat = NA, ad.p.value = NA,
+                            sw.stat = NA, sw.p.value = NA,
+                            chow.stat = NA, chow.p.value = NA,
+                            significance = NA, max.p.value = NA,
+                            max.vif = NA,
+                            tests = NA, n = NA, equation = NA)
   
+  if(intercept == FALSE){
+    model.stats$bp.stat <- NULL
+    model.stats$bp.p.value <- NULL
+  }
+
   model.stats$target <- target
   model.stats$vars <- vars
   model.stats$R2 <- model$r.squared
@@ -143,6 +142,23 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
                            # reliably compute RMSE
                            dset[apply(dset, 1, function(x) !sum(is.na(x))),
                                 c(target, vars.split)])
+  
+  # Predicted R-Squared
+  
+  if(pred.R2){
+    PRESS.stat <- PRESS(dset, target, vars.split, intercept)
+    model.stats$pred.R2 <- pred_r_squared(PRESS.stat, model.original)
+  }else{
+    model.stats$pred.R2 <- NULL
+  }
+  
+  # AIC, BIC
+  
+  model.stats$AIC <- AIC(model.original)
+  model.stats$BIC <- BIC(model.original)
+  
+  # F stat
+
   model.stats$F.stat <- model$fstatistic["value"]
   model.stats$F.p.value <- pf(model$fstatistic[1], model$fstatistic[2],
                               model$fstatistic[3], lower=FALSE)
@@ -181,16 +197,16 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
                            p.value = model$coefficients[,4], vif = rep(NA, nvars))
   
   if(length(vars.split) == 1){
-    if(intercept == T){
+    if(intercept){
       model.vars$vif <- c(rep(NA, 2))
     }else{
       model.vars$vif <- NA
     }
   }else{
-    if(intercept == T){
-      model.vars$vif <- c(NA, vif(model.original))
+    if(intercept){
+      model.vars$vif <- c(NA, car::vif(model.original))
     }else{
-      model.vars$vif <- vif(model.original)
+      model.vars$vif <- car::vif(model.original)
     }
   }
   
@@ -217,11 +233,11 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
   model.stats$equation <- paste0(paste0(as.character(model.vars$var), sep = "*"),
                                  paste0("(", model.vars$coef , ")"), collapse = "+")
   
-  if(visualize == T){
+  if(visualize){
     
     dset$predicted <- predict(model.original, dset)
     
-    if(time.series == T | length(time.var)>0){
+    if(time.series == TRUE | length(time.var)>0){
       model.plot <- ggplot(dset, aes_string(x="predicted", y=target)) +
         geom_point(shape=19, color = "purple") +
         xlab("Predicted") +
@@ -230,7 +246,7 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
                        percent(model.stats$adjusted.R2))) +
         theme_minimal()
     }
-    if(time.series == T){
+    if(time.series){
       time.series.plot <- ggplot() +
         geom_line(data = dset, aes_string(x="date.custom", y=target,
                                           col = "target")) +
@@ -271,7 +287,7 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
     time.series.plot<- NULL
   }
   
-  if(output.residuals == T){
+  if(output.residuals){
     model.errors <- model$residuals
   }else{
     model.errors <- NULL
@@ -281,26 +297,3 @@ ols <- function(dset, target, vars, alpha = .05, intercept = T,
               output.residuals = model.errors,
               time.plot = time.series.plot))
 }
-
-### Examples
-# model <- ols(dset = iris,
-#     target = "Sepal.Length",
-#     vars = "Sepal.Width",
-#     visualize = T, output.residuals = T, time.series = F)
-
-# EuStockMarkets2 <- data.frame(as.matrix(EuStockMarkets),
-#                           date=as.yearmon(time(EuStockMarkets)))
-# 
-# model <- ols(dset = EuStockMarkets2,
-#              target = "DAX",
-#              vars = "FTSE CAC",
-#              visualize = T, output.residuals = T, time.series = F,
-#              time.var = NULL)
-# model[["plot"]]
-
-# a <- read.csv("EuStockMarkets2.csv")
-# ols(dset = EuStockMarkets2,
-#                  target = "DAX",
-#                  vars = "FTSE CAC",
-#                  visualize = T, output.residuals = T,
-#                  time.var = "NULL")

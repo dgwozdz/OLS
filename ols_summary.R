@@ -2,7 +2,7 @@
 # Author:             Damian Gwozdz (DG)
 # Function:           ols
 # Creation date:      15JUN2017
-# Last modified:      22JAN2018
+# Last modified:      28JAN2018
 # Description:        Function to build multiple Ordinary
 #                     Least Squares models in a parallelized way
 # Required functions: ols
@@ -13,9 +13,9 @@ source("ols.r")
 source("ncomb.r")
 
 ols_summary <- function(dset.sum, target.sum, vars.sum, alpha.sum = .05,
-                        intercept.sum = T, do.parallel = F, n.cores = 2,
-                        visualize.sum = F, time.var.sum = NULL,
-                        progress.bar = T){
+                        intercept.sum = TRUE, do.parallel = FALSE, n.cores = 2,
+                        visualize.sum = FALSE, time.var.sum = NULL,
+                        progress.bar = TRUE, pred.R2.sum = FALSE){
   
   #====================================================================
   # PARAMETERS:
@@ -35,6 +35,9 @@ ols_summary <- function(dset.sum, target.sum, vars.sum, alpha.sum = .05,
   # 7) time.var.sum - variable identifying time
   # 8) progress.bar - a boolean value indicating whether a progress bar
   #                   for non-parallelized computations should be displayed
+  # 9) pred.R2.sum  - a boolean value indicating whether predicted R-squared
+  #                   should be computed; this option is turned off by
+  #                   default due to computation time
   #====================================================================
   
   # Parameters
@@ -62,40 +65,32 @@ ols_summary <- function(dset.sum, target.sum, vars.sum, alpha.sum = .05,
   num.models <- length(vars.sum)
   num.NA <- rep(NA, num.models)
   
-  if(intercept.sum){
-    model.stats <- data.frame(target = num.NA, vars = num.NA, R2 = num.NA,
-                              adjusted.R2 = num.NA, RMSE = num.NA, F.stat = num.NA,
-                              F.p.value = num.NA, bp.stat = num.NA,
-                              bp.p.value = num.NA, bg.stat = num.NA,
-                              bg.p.value = num.NA, reset.stat = num.NA,
-                              reset.p.value = num.NA, ad.stat = num.NA,
-                              ad.p.value = num.NA, sw.stat = num.NA,
-                              sw.p.value = num.NA, chow.stat = num.NA,
-                              chow.p.value = num.NA,
-                              significance = num.NA, max.p.value = num.NA,
-                              max.vif = num.NA,
-                              tests = num.NA, n = num.NA, equation = num.NA)
-  }else{
-    model.stats <- data.frame(target = num.NA, vars = num.NA, R2 = num.NA,
-                              adjusted.R2 = num.NA, RMSE = num.NA, F.stat = num.NA,
-                              F.p.value = num.NA,
-                              bg.stat = num.NA, bg.p.value = num.NA,
-                              reset.stat = num.NA,
-                              reset.p.value = num.NA, ad.stat = num.NA,
-                              ad.p.value = num.NA, sw.stat = num.NA,
-                              sw.p.value = num.NA, chow.stat = num.NA,
-                              chow.p.value = num.NA,
-                              significance = num.NA, max.p.value = num.NA,
-                              max.vif = num.NA,
-                              tests = num.NA, n = num.NA, equation = num.NA)
+  model.stats <- data.frame(target = num.NA, vars = num.NA, R2 = num.NA,
+                            adjusted.R2 = num.NA, RMSE = num.NA,
+                            pred.R2 = num.NA, 
+                            AIC = num.NA, BIC = num.NA, F.stat = num.NA,
+                            F.p.value = num.NA, bp.stat = num.NA,
+                            bp.p.value = num.NA, bg.stat = num.NA,
+                            bg.p.value = num.NA, reset.stat = num.NA,
+                            reset.p.value = num.NA, ad.stat = num.NA,
+                            ad.p.value = num.NA, sw.stat = num.NA,
+                            sw.p.value = num.NA, chow.stat = num.NA,
+                            chow.p.value = num.NA,
+                            significance = num.NA, max.p.value = num.NA,
+                            max.vif = num.NA,
+                            tests = num.NA, n = num.NA, equation = num.NA)
+  
+  if(intercept.sum == FALSE){
+    model.stats$bp.stat <- NULL
+    model.stats$bp.p.value <- NULL
   }
   
   model.vars <- vector(mode = "list", length = num.models)
   
   
   # Non-parallelized version
-  if(do.parallel == F){
-    if(progress.bar == T){
+  if(do.parallel == FALSE){
+    if(progress.bar){
       pb <- winProgressBar(title="Number of built models", label="0% done",
                            min=0, max=100, initial=0)
       for(i in 1:length(vars.sum)){
@@ -105,7 +100,8 @@ ols_summary <- function(dset.sum, target.sum, vars.sum, alpha.sum = .05,
                      alpha = alpha.sum,
                      intercept = intercept.sum,
                      visualize = visualize.sum,
-                     time.var = time.var.sum)
+                     time.var = time.var.sum,
+                     pred.R2 = pred.R2.sum)
         model.stats[i,] <- ols.i[["stats"]]
         model.vars[[i]] <- ols.i[["var.stats"]]
         models <- list("stats" = model.stats, "vars.stats" = model.vars)
@@ -122,7 +118,8 @@ ols_summary <- function(dset.sum, target.sum, vars.sum, alpha.sum = .05,
                      alpha = alpha.sum,
                      intercept = intercept.sum,
                      visualize = visualize.sum,
-                     time.var = time.var.sum)
+                     time.var = time.var.sum,
+                     pred.R2 = pred.R2.sum)
         model.stats[i,] <- ols.i[["stats"]]
         model.vars[[i]] <- ols.i[["var.stats"]]
         models <- list("stats" = model.stats, "vars.stats" = model.vars)
@@ -150,7 +147,8 @@ ols_summary <- function(dset.sum, target.sum, vars.sum, alpha.sum = .05,
                                         vars = vars.sum[i],
                                         alpha = alpha.sum,
                                         intercept = intercept.sum,
-                                        visualize = visualize.sum)
+                                        visualize = visualize.sum,
+                                        pred.R2 = pred.R2.sum)
     
     )
     stopCluster(cl) 
@@ -167,29 +165,3 @@ ols_summary <- function(dset.sum, target.sum, vars.sum, alpha.sum = .05,
   models$stats$model.num <- 1:num.models
   return(models)
 }
-
-# seq_len(num.models)
-
-
-### Examples
-# target.all <- rep("Sepal.Length",
-#                   length(
-#                     ncomb(vec = c('Sepal.Width', 'Petal.Length'),
-#                           m = 1,
-#                           n = 2,
-#                           max.lag = 0)
-#                   ))
-# vars.all <- ncomb(vec = c('Sepal.Width', 'Petal.Length'),
-#                   m = 1,
-#                   n = 2,
-#                   max.lag = 0)
-# # 
-# system.time(
-# all <- ols_summary(dset.sum = iris,
-#             target.sum = target.all,
-#             vars.sum = vars.all,
-#             alpha.sum = .05,
-#             intercept.sum = T,
-#             do.parallel = F,
-#             visualize.sum = F,
-#             n.cores = 2))
