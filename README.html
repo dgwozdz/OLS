@@ -25,7 +25,7 @@ body {
 
 <body>
 
-<p>28 JAN 2018</p>
+<p>29 JAN 2018</p>
 <h1 id="readme">README</h1>
 <p>The goal of functions in this repo is to semi automatically build Ordinary Least Squares (OLS) models on the basis of a set of declared variables. If the available data is time series, lagging and differencing is possible.</p>
 <h3 id="short-description-of-the-functions">1. Short description of the functions</h3>
@@ -35,12 +35,15 @@ body {
 <li><code>ncomb</code>: Allows all possible combinations of a set of variables (including the ones after differencing).</li>
 <li><code>lags</code>: Allows lagging variables.</li>
 <li><code>difs</code>: Allows differencing variables.</li>
+<li><code>PRESS</code>: Computes PRESS statistic required to calculate predicted R-squared.</li>
+<li><code>pred_r_squared</code>:Computes predicted R-squared.</li>
 </ol>
 <h3 id="tutorial">2. Tutorial</h3>
 <p>This tutorial will teach you how to use above mentioned functions. After getting through below given examples, you'll be able to:</p>
 <ol>
 <li>Build one regression model and test it.</li>
 <li>Visualize histogram of errors.</li>
+<li>Obtaining additional statistic: predicted R-squared.</li>
 <li>Difference and lag selected variables.</li>
 <li>Build multiple regression models and test them.</li>
 <li>Use parallelization while building multiple models.</li>
@@ -57,10 +60,12 @@ body {
 <span class="kw">install.packages</span>(<span class="st">&quot;zoo&quot;</span>)
 <span class="kw">install.packages</span>(<span class="st">&quot;lubridate&quot;</span>)
 <span class="kw">install.packages</span>(<span class="st">&quot;nortest&quot;</span>)
-<span class="kw">install.packages</span>(<span class="st">&quot;microbenchmark&quot;</span>)</code></pre></div>
+<span class="kw">install.packages</span>(<span class="st">&quot;microbenchmark&quot;</span>)
+<span class="kw">install.packages</span>(<span class="st">&quot;RcppEigen&quot;</span>)</code></pre></div>
 <h3 id="our-first-regression-model">2.1 Our first regression model</h3>
 <p>Firstly, let's read the data. We will take advantage of <code>EuStockMarkets</code> from library <code>datasets</code>:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(datasets)
+<span class="kw">library</span>(RcppEigen)
 <span class="kw">data</span>(EuStockMarkets)</code></pre></div>
 <p>Let's take a look at a couple of rows:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">head</span>(EuStockMarkets)</code></pre></div>
@@ -122,33 +127,35 @@ body {
 ## [4] &quot;output.residuals&quot; &quot;time.plot&quot;</code></pre>
 <p>We can see that the object consists of 5 elements. We will start our analysis with the first one, <code>stats</code>:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">model1<span class="op">$</span>stats</code></pre></div>
-<table style="width:100%;">
+<table>
 <colgroup>
 <col width="2%"></col>
 <col width="3%"></col>
-<col width="3%"></col>
-<col width="3%"></col>
-<col width="2%"></col>
 <col width="2%"></col>
 <col width="3%"></col>
 <col width="2%"></col>
-<col width="3%"></col>
+<col width="2%"></col>
+<col width="2%"></col>
+<col width="2%"></col>
+<col width="2%"></col>
 <col width="2%"></col>
 <col width="3%"></col>
-<col width="3%"></col>
-<col width="4%"></col>
 <col width="2%"></col>
 <col width="3%"></col>
 <col width="3%"></col>
 <col width="3%"></col>
-<col width="3%"></col>
-<col width="3%"></col>
-<col width="3%"></col>
+<col width="2%"></col>
 <col width="3%"></col>
 <col width="2%"></col>
+<col width="3%"></col>
+<col width="2%"></col>
+<col width="3%"></col>
+<col width="3%"></col>
+<col width="3%"></col>
 <col width="2%"></col>
 <col width="1%"></col>
-<col width="27%"></col>
+<col width="1%"></col>
+<col width="25%"></col>
 </colgroup>
 <thead>
 <tr class="header">
@@ -157,6 +164,8 @@ body {
 <th align="right">R2</th>
 <th align="right">adjusted.R2</th>
 <th align="right">RMSE</th>
+<th align="right">AIC</th>
+<th align="right">BIC</th>
 <th align="right">F.stat</th>
 <th align="right">F.p.value</th>
 <th align="right">bp.stat</th>
@@ -186,6 +195,8 @@ body {
 <td align="right">0.9898478</td>
 <td align="right">0.9898314</td>
 <td align="right">803.3033</td>
+<td align="right">22749.55</td>
+<td align="right">22777.19</td>
 <td align="right">60320.47</td>
 <td align="right">0</td>
 <td align="right">243.397</td>
@@ -211,6 +222,8 @@ body {
 </table>
 <p>The output presents a flat table, showing the target variable, the independent variables, statistics representing the model quality (R-Squared, adjusted R-Squared, RMSE) and some statistical tests:</p>
 <ol>
+<li><strong>AIC</strong>: Akaike Information Criterion comparable between different models; the smaller the AIC, the better the fit.</li>
+<li><strong>BIC</strong>: Schwarz's Bayesian Criterion comparable between different models; the smaller the AIC, the better the fit. BIC is more restrictive than AIC: it penalizes more heavily models with greater number of parameters.</li>
 <li><strong>F</strong>: significance test of all variables in the model.</li>
 <li><strong>bp</strong>: Breusch-Pagan heteroscedasticity test.</li>
 <li><strong>bg</strong>: Breusch-Godfrey autocorrelation test.</li>
@@ -314,11 +327,11 @@ model2<span class="op">$</span>var.stats</code></pre></div>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">model3 &lt;-<span class="st"> </span><span class="kw">ols</span>(<span class="dt">dset =</span> EuStockMarkets,
               <span class="dt">target =</span> <span class="st">&quot;DAX&quot;</span>,
               <span class="dt">vars =</span> <span class="st">&quot;CAC FTSE&quot;</span>,
-              <span class="dt">intercept =</span> F)</code></pre></div>
+              <span class="dt">intercept =</span> <span class="ot">FALSE</span>)</code></pre></div>
 <pre><code>## Warning in vif.default(model.original): No intercept: vifs may not be
 ## sensible.</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">model3<span class="op">$</span>var.stats</code></pre></div>
-<table>
+<table style="width:100%;">
 <colgroup>
 <col width="2%"></col>
 <col width="3%"></col>
@@ -328,13 +341,15 @@ model2<span class="op">$</span>var.stats</code></pre></div>
 <col width="3%"></col>
 <col width="3%"></col>
 <col width="3%"></col>
-<col width="4%"></col>
-<col width="4%"></col>
-<col width="5%"></col>
+<col width="3%"></col>
+<col width="3%"></col>
+<col width="3%"></col>
 <col width="3%"></col>
 <col width="4%"></col>
 <col width="3%"></col>
-<col width="4%"></col>
+<col width="3%"></col>
+<col width="3%"></col>
+<col width="3%"></col>
 <col width="3%"></col>
 <col width="4%"></col>
 <col width="4%"></col>
@@ -342,7 +357,7 @@ model2<span class="op">$</span>var.stats</code></pre></div>
 <col width="3%"></col>
 <col width="2%"></col>
 <col width="2%"></col>
-<col width="16%"></col>
+<col width="15%"></col>
 </colgroup>
 <thead>
 <tr class="header">
@@ -351,6 +366,8 @@ model2<span class="op">$</span>var.stats</code></pre></div>
 <th align="right">R2</th>
 <th align="right">adjusted.R2</th>
 <th align="right">RMSE</th>
+<th align="right">AIC</th>
+<th align="right">BIC</th>
 <th align="right">F.stat</th>
 <th align="right">F.p.value</th>
 <th align="right">bg.stat</th>
@@ -378,6 +395,8 @@ model2<span class="op">$</span>var.stats</code></pre></div>
 <td align="right">0.9769045</td>
 <td align="right">0.9768796</td>
 <td align="right">670.5558</td>
+<td align="right">27740.15</td>
+<td align="right">27756.73</td>
 <td align="right">39295.28</td>
 <td align="right">0</td>
 <td align="right">1854.851</td>
@@ -429,8 +448,8 @@ model2<span class="op">$</span>var.stats</code></pre></div>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">model1 &lt;-<span class="st"> </span><span class="kw">ols</span>(<span class="dt">dset =</span> EuStockMarkets,
                 <span class="dt">target =</span> <span class="st">&quot;DAX&quot;</span>,
                 <span class="dt">vars =</span> <span class="st">&quot;SMI CAC FTSE&quot;</span>,
-                <span class="dt">visualize =</span> T,
-                <span class="dt">output.residuals =</span> T)
+                <span class="dt">visualize =</span> <span class="ot">TRUE</span>,
+                <span class="dt">output.residuals =</span> <span class="ot">TRUE</span>)
 <span class="kw">qplot</span>(model1[[<span class="st">&quot;output.residuals&quot;</span>]]) <span class="op">+</span>
 <span class="st">  </span><span class="kw">theme_minimal</span>() <span class="op">+</span>
 <span class="st">  </span><span class="kw">xlab</span>(<span class="st">''</span>) <span class="op">+</span>
@@ -441,8 +460,8 @@ model2<span class="op">$</span>var.stats</code></pre></div>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">model1 &lt;-<span class="st"> </span><span class="kw">ols</span>(<span class="dt">dset =</span> EuStockMarkets,
               <span class="dt">target =</span> <span class="st">&quot;DAX&quot;</span>,
               <span class="dt">vars =</span> <span class="st">&quot;CAC FTSE&quot;</span>,
-              <span class="dt">visualize =</span> T,
-              <span class="dt">time.series  =</span> T)
+              <span class="dt">visualize =</span> <span class="ot">TRUE</span>,
+              <span class="dt">time.series  =</span> <span class="ot">TRUE</span>)
 model1<span class="op">$</span>time.plot</code></pre></div>
 <pre><code>## Don't know how to automatically pick scale for object of type yearmon. Defaulting to continuous.</code></pre>
 <p><img src="data:image/png;base64,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" /></p>
@@ -455,7 +474,7 @@ EuStockMarkets<span class="op">$</span>date &lt;-<span class="st"> </span>date</
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">model1 &lt;-<span class="st"> </span><span class="kw">ols</span>(<span class="dt">dset =</span> EuStockMarkets,
               <span class="dt">target =</span> <span class="st">&quot;DAX&quot;</span>,
               <span class="dt">vars =</span> <span class="st">&quot;CAC FTSE&quot;</span>,
-              <span class="dt">visualize =</span> T,
+              <span class="dt">visualize =</span> <span class="ot">TRUE</span>,
               <span class="dt">time.var  =</span> <span class="st">&quot;date&quot;</span>)
 model1<span class="op">$</span>time.plot</code></pre></div>
 <pre><code>## Don't know how to automatically pick scale for object of type yearmon. Defaulting to continuous.</code></pre>
@@ -464,10 +483,177 @@ model1<span class="op">$</span>time.plot</code></pre></div>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">model2 &lt;-<span class="st"> </span><span class="kw">ols</span>(<span class="dt">dset =</span> iris,
               <span class="dt">target =</span> <span class="st">&quot;Sepal.Length&quot;</span>,
               <span class="dt">vars =</span> <span class="st">&quot;Sepal.Width Petal.Length&quot;</span>,
-              <span class="dt">visualize =</span> T)
+              <span class="dt">visualize =</span> <span class="ot">TRUE</span>)
 model2<span class="op">$</span>plot</code></pre></div>
 <p><img src="data:image/png;base64,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" /></p>
-<h3 id="differencing-and-lagging-variables">2.3 Differencing and lagging variables</h3>
+<h3 id="additional-statistic-predicted-r-squared">2.3 Additional statistic: predicted R-squared</h3>
+<p>An additional statistic which can be optionally obtained is a predicted R-squared. It helps evaluating how well the model predicts new observations. The higher predicted R-squared, the better your model is at predictng new instances of the target variable. The method of its calculation is as follows:</p>
+<ol>
+<li>For every sample in the data set perform a Leave-One-Out Cross-Validation (LOOCV):</li>
+</ol>
+<ul>
+<li>Predict the left out in a given run target value on the basis of the model built without this value.</li>
+</ul>
+<ol>
+<li>Compute the sum of squared differences between predicted and observed values obtained in .): it is so called <code>PRESS</code> statistic.</li>
+<li>Compute the ratio: <code>PRESS/TSS</code> (<code>TSS</code> = Tota Sum of Squared, i.e. the sum of squared differences between the target values and their average).</li>
+<li>Compute predicted R-squared: <code>1 - PRESS/TSS</code>.</li>
+</ol>
+<p>If you're interested in more details, they can be found <a href="https://rpubs.com/RatherBit/102428">here</a>.</p>
+<p>Let's not jump to the example. Again, we will use the <code>EuStockMarkets</code> data set. It is worth mentioning that for the needs of calculation of this statistic the <strong>data set have to be a data frame</strong> (not a <code>mts</code> object). However, in this example we don't have to worry about that since we transformed it earlier. The parameter controlling the output of this statistic is called <code>pred.R2</code>:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">model4 &lt;-<span class="kw">ols</span>(<span class="dt">dset =</span> EuStockMarkets,
+              <span class="dt">target =</span> <span class="st">&quot;DAX&quot;</span>,
+              <span class="dt">vars =</span> <span class="st">&quot;CAC FTSE&quot;</span>,
+              <span class="dt">pred.R2 =</span> <span class="ot">TRUE</span>)
+model4<span class="op">$</span>stats</code></pre></div>
+<table style="width:100%;">
+<colgroup>
+<col width="2%"></col>
+<col width="2%"></col>
+<col width="2%"></col>
+<col width="3%"></col>
+<col width="2%"></col>
+<col width="2%"></col>
+<col width="2%"></col>
+<col width="2%"></col>
+<col width="2%"></col>
+<col width="2%"></col>
+<col width="2%"></col>
+<col width="3%"></col>
+<col width="2%"></col>
+<col width="3%"></col>
+<col width="3%"></col>
+<col width="3%"></col>
+<col width="2%"></col>
+<col width="3%"></col>
+<col width="2%"></col>
+<col width="3%"></col>
+<col width="2%"></col>
+<col width="3%"></col>
+<col width="3%"></col>
+<col width="3%"></col>
+<col width="2%"></col>
+<col width="1%"></col>
+<col width="1%"></col>
+<col width="20%"></col>
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">target</th>
+<th align="left">vars</th>
+<th align="right">R2</th>
+<th align="right">adjusted.R2</th>
+<th align="right">RMSE</th>
+<th align="right">pred.R2</th>
+<th align="right">AIC</th>
+<th align="right">BIC</th>
+<th align="right">F.stat</th>
+<th align="right">F.p.value</th>
+<th align="right">bp.stat</th>
+<th align="right">bp.p.value</th>
+<th align="right">bg.stat</th>
+<th align="right">bg.p.value</th>
+<th align="right">reset.stat</th>
+<th align="right">reset.p.value</th>
+<th align="right">ad.stat</th>
+<th align="right">ad.p.value</th>
+<th align="right">sw.stat</th>
+<th align="right">sw.p.value</th>
+<th align="right">chow.stat</th>
+<th align="right">chow.p.value</th>
+<th align="left">significance</th>
+<th align="right">max.p.value</th>
+<th align="right">max.vif</th>
+<th align="left">tests</th>
+<th align="right">n</th>
+<th align="left">equation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">DAX</td>
+<td align="left">CAC FTSE</td>
+<td align="right">0.9841894</td>
+<td align="right">0.9841724</td>
+<td align="right">708.3813</td>
+<td align="right">0.9841277</td>
+<td align="right">23571.5</td>
+<td align="right">23593.62</td>
+<td align="right">57798.07</td>
+<td align="right">0</td>
+<td align="right">301.2286</td>
+<td align="right">0</td>
+<td align="right">1802.022</td>
+<td align="right">0</td>
+<td align="right">146.4167</td>
+<td align="right">0</td>
+<td align="right">4.530819</td>
+<td align="right">0</td>
+<td align="right">0.9935889</td>
+<td align="right">3e-07</td>
+<td align="right">256.8144</td>
+<td align="right">0</td>
+<td align="left">TRUE</td>
+<td align="right">0</td>
+<td align="right">6.194059</td>
+<td align="left">TRUE</td>
+<td align="right">1860</td>
+<td align="left">(Intercept)<em>(-1575.30452045062)+CAC</em>(0.847921086750325)+FTSE*(0.621750000476402)</td>
+</tr>
+</tbody>
+</table>
+<p>As we can see, the predicted R-squared is lower then both R-squared and adjusted R-squared.</p>
+<p>Calculation of the predicted R-squared is turned off by default since it's really time consuming. Performing LOOCV translates to computing additional <code>n</code> models (where <code>n</code> is the number of observations in your data set). In the example above it was 1860 additional OLS models. Let's check how it influences computation time We will use the <code>microbenchmark</code> library. Each function was ran 100 times and on the basis of the results, basis statistics were obtained.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(microbenchmark)
+
+mbm.pred.R2 &lt;-<span class="st"> </span><span class="kw">microbenchmark</span>(
+  <span class="st">&quot;pred.R2&quot;</span>  =<span class="st"> </span>{model1 &lt;-<span class="st"> </span><span class="kw">ols</span>(<span class="dt">dset =</span> EuStockMarkets,
+                                        <span class="dt">target =</span> <span class="st">&quot;DAX&quot;</span>,
+                                        <span class="dt">vars =</span> <span class="st">&quot;SMI CAC FTSE&quot;</span>,
+                                        <span class="dt">pred.R2 =</span> <span class="ot">TRUE</span>)},
+  <span class="st">&quot;no.pred.R2&quot;</span> =<span class="st"> </span>{model1 &lt;-<span class="st"> </span><span class="kw">ols</span>(<span class="dt">dset =</span> EuStockMarkets,
+                                          <span class="dt">target =</span> <span class="st">&quot;DAX&quot;</span>,
+                                          <span class="dt">vars =</span> <span class="st">&quot;SMI CAC FTSE&quot;</span>,
+                                          <span class="dt">pred.R2 =</span> <span class="ot">FALSE</span>)})
+mbm.pred.R2</code></pre></div>
+<table>
+<thead>
+<tr class="header">
+<th align="left">expr</th>
+<th align="right">min</th>
+<th align="right">lq</th>
+<th align="right">mean</th>
+<th align="right">median</th>
+<th align="right">uq</th>
+<th align="right">max</th>
+<th align="right">neval</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">pred.R2</td>
+<td align="right">4671.14071</td>
+<td align="right">4875.92802</td>
+<td align="right">5141.06066</td>
+<td align="right">5069.80760</td>
+<td align="right">5291.08432</td>
+<td align="right">6752.8239</td>
+<td align="right">100</td>
+</tr>
+<tr class="even">
+<td align="left">no.pred.R2</td>
+<td align="right">43.77589</td>
+<td align="right">45.09869</td>
+<td align="right">49.16099</td>
+<td align="right">47.61333</td>
+<td align="right">50.61435</td>
+<td align="right">87.3956</td>
+<td align="right">100</td>
+</tr>
+</tbody>
+</table>
+<p>As we can see, the computation time rockets on average by 104.576016 times from 0.049161 to 0.049161 seconds!</p>
+<h3 id="differencing-and-lagging-variables">2.4 Differencing and lagging variables</h3>
 <p>Now we will proceed to building multiple models. At the moment objects of class <code>mts</code> are not handled, so at first our data set should be converted into a data frame (if it hasn't been done earlier). Then we can add some lagged variables. To lag regressors, we can use <code>lag</code> function:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">EuStockMarkets &lt;-<span class="st"> </span><span class="kw">data.frame</span>(EuStockMarkets)
 
@@ -494,7 +680,7 @@ EuStockMarkets &lt;-<span class="st"> </span><span class="kw">lags</span>(<span 
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">n.models &lt;-<span class="st"> </span><span class="kw">length</span>(vars)
 n.models</code></pre></div>
 <pre><code>## [1] 215</code></pre>
-<h3 id="creating-multiple-regression-models">2.4 Creating multiple regression models</h3>
+<h3 id="creating-multiple-regression-models">2.5 Creating multiple regression models</h3>
 <p>As we can see, in a moment we will build 215 OLS models. To obtain them in one command, <code>ols_summary</code> function will be used:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">models &lt;-<span class="st"> </span><span class="kw">ols_summary</span>(<span class="dt">dset.sum =</span> EuStockMarkets,
                       <span class="dt">target.sum =</span> <span class="kw">rep</span>(<span class="st">&quot;DAX&quot;</span>, n.models),
@@ -518,10 +704,10 @@ models.stats<span class="op">$</span>model.num</code></pre></div>
 ## [205] 205 206 207 208 209 210 211 212 213 214 215</code></pre>
 <p>Let's see six best models in terms of adjusted R-Squared:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">head</span>(models.stats[<span class="kw">order</span>(models.stats<span class="op">$</span>adjusted.R2, <span class="dt">decreasing =</span> T),])</code></pre></div>
-<table style="width:100%;">
+<table>
 <colgroup>
 <col width="1%"></col>
-<col width="2%"></col>
+<col width="1%"></col>
 <col width="4%"></col>
 <col width="2%"></col>
 <col width="3%"></col>
@@ -529,23 +715,26 @@ models.stats<span class="op">$</span>model.num</code></pre></div>
 <col width="2%"></col>
 <col width="2%"></col>
 <col width="2%"></col>
-<col width="3%"></col>
-<col width="2%"></col>
-<col width="3%"></col>
-<col width="3%"></col>
-<col width="3%"></col>
-<col width="2%"></col>
-<col width="3%"></col>
-<col width="2%"></col>
-<col width="3%"></col>
-<col width="2%"></col>
-<col width="3%"></col>
-<col width="3%"></col>
-<col width="3%"></col>
-<col width="3%"></col>
 <col width="1%"></col>
+<col width="2%"></col>
+<col width="2%"></col>
+<col width="2%"></col>
+<col width="2%"></col>
+<col width="2%"></col>
+<col width="2%"></col>
+<col width="3%"></col>
+<col width="2%"></col>
+<col width="2%"></col>
+<col width="2%"></col>
+<col width="2%"></col>
+<col width="2%"></col>
+<col width="3%"></col>
+<col width="3%"></col>
+<col width="3%"></col>
+<col width="2%"></col>
 <col width="1%"></col>
-<col width="26%"></col>
+<col width="24%"></col>
+<col width="2%"></col>
 <col width="2%"></col>
 </colgroup>
 <thead>
@@ -556,6 +745,9 @@ models.stats<span class="op">$</span>model.num</code></pre></div>
 <th align="right">R2</th>
 <th align="right">adjusted.R2</th>
 <th align="right">RMSE</th>
+<th align="right">pred.R2</th>
+<th align="right">AIC</th>
+<th align="right">BIC</th>
 <th align="right">F.stat</th>
 <th align="right">F.p.value</th>
 <th align="right">bp.stat</th>
@@ -569,12 +761,12 @@ models.stats<span class="op">$</span>model.num</code></pre></div>
 <th align="right">sw.stat</th>
 <th align="right">sw.p.value</th>
 <th align="right">chow.stat</th>
-<th align="right">chow.p.value</th>
-<th align="left">significance</th>
+<th align="left">chow.p.value</th>
+<th align="right">significance</th>
 <th align="right">max.p.value</th>
-<th align="right">max.vif</th>
-<th align="left">tests</th>
-<th align="right">n</th>
+<th align="left">max.vif</th>
+<th align="right">tests</th>
+<th align="left">n</th>
 <th align="left">equation</th>
 <th align="right">model.num</th>
 </tr>
@@ -587,6 +779,8 @@ models.stats<span class="op">$</span>model.num</code></pre></div>
 <td align="right">0.9899472</td>
 <td align="right">0.9899309</td>
 <td align="right">803.4522</td>
+<td align="right">22683.54</td>
+<td align="right">22711.17</td>
 <td align="right">60791.90</td>
 <td align="right">0</td>
 <td align="right">204.6968</td>
@@ -607,6 +801,7 @@ models.stats<span class="op">$</span>model.num</code></pre></div>
 <td align="left">TRUE</td>
 <td align="right">1856</td>
 <td align="left">(Intercept)<em>(-127.626973618169)+SMI</em>(0.513114108395759)+CAC.4<em>(0.482952957049387)+FTSE.4</em>(-0.0416017513798577)</td>
+<td align="left">DAX</td>
 <td align="right">185</td>
 </tr>
 <tr class="even">
@@ -616,6 +811,8 @@ models.stats<span class="op">$</span>model.num</code></pre></div>
 <td align="right">0.9899393</td>
 <td align="right">0.9899230</td>
 <td align="right">803.9688</td>
+<td align="right">22684.99</td>
+<td align="right">22712.62</td>
 <td align="right">60743.76</td>
 <td align="right">0</td>
 <td align="right">206.9403</td>
@@ -636,6 +833,7 @@ models.stats<span class="op">$</span>model.num</code></pre></div>
 <td align="left">TRUE</td>
 <td align="right">1856</td>
 <td align="left">(Intercept)<em>(-140.068438037302)+SMI</em>(0.50873290702042)+CAC.4<em>(0.484290355238345)+FTSE.3</em>(-0.034770345076648)</td>
+<td align="left">DAX</td>
 <td align="right">160</td>
 </tr>
 <tr class="odd">
@@ -645,6 +843,8 @@ models.stats<span class="op">$</span>model.num</code></pre></div>
 <td align="right">0.9899310</td>
 <td align="right">0.9899147</td>
 <td align="right">804.4874</td>
+<td align="right">22686.53</td>
+<td align="right">22714.16</td>
 <td align="right">60693.01</td>
 <td align="right">0</td>
 <td align="right">209.3146</td>
@@ -665,6 +865,7 @@ models.stats<span class="op">$</span>model.num</code></pre></div>
 <td align="left">TRUE</td>
 <td align="right">1856</td>
 <td align="left">(Intercept)<em>(-158.998174628224)+SMI</em>(0.502095876874254)+CAC.4<em>(0.486880719902912)+FTSE.2</em>(-0.0247679406452226)</td>
+<td align="left">DAX</td>
 <td align="right">135</td>
 </tr>
 <tr class="even">
@@ -674,6 +875,8 @@ models.stats<span class="op">$</span>model.num</code></pre></div>
 <td align="right">0.9899230</td>
 <td align="right">0.9899121</td>
 <td align="right">700.2205</td>
+<td align="right">22686.00</td>
+<td align="right">22708.10</td>
 <td align="right">91015.77</td>
 <td align="right">0</td>
 <td align="right">211.9794</td>
@@ -694,6 +897,7 @@ models.stats<span class="op">$</span>model.num</code></pre></div>
 <td align="left">TRUE</td>
 <td align="right">1856</td>
 <td align="left">(Intercept)<em>(-207.684673377669)+SMI</em>(0.485097308509324)+CAC.4*(0.494904389563161)</td>
+<td align="left">DAX</td>
 <td align="right">35</td>
 </tr>
 <tr class="odd">
@@ -703,6 +907,8 @@ models.stats<span class="op">$</span>model.num</code></pre></div>
 <td align="right">0.9899247</td>
 <td align="right">0.9899083</td>
 <td align="right">804.9980</td>
+<td align="right">22687.70</td>
+<td align="right">22715.33</td>
 <td align="right">60654.42</td>
 <td align="right">0</td>
 <td align="right">211.9374</td>
@@ -723,6 +929,7 @@ models.stats<span class="op">$</span>model.num</code></pre></div>
 <td align="left">TRUE</td>
 <td align="right">1856</td>
 <td align="left">(Intercept)<em>(-184.955738670181)+SMI</em>(0.493022354676854)+CAC.4<em>(0.490983988133413)+FTSE.1</em>(-0.0114386271974997)</td>
+<td align="left">DAX</td>
 <td align="right">110</td>
 </tr>
 <tr class="even">
@@ -732,6 +939,8 @@ models.stats<span class="op">$</span>model.num</code></pre></div>
 <td align="right">0.9899234</td>
 <td align="right">0.9899070</td>
 <td align="right">805.5190</td>
+<td align="right">22687.94</td>
+<td align="right">22715.57</td>
 <td align="right">60646.48</td>
 <td align="right">0</td>
 <td align="right">214.9618</td>
@@ -752,6 +961,7 @@ models.stats<span class="op">$</span>model.num</code></pre></div>
 <td align="left">TRUE</td>
 <td align="right">1856</td>
 <td align="left">(Intercept)<em>(-218.221847587644)+SMI</em>(0.481427677619494)+CAC.4<em>(0.496796260977783)+FTSE</em>(0.00525002049348799)</td>
+<td align="left">DAX</td>
 <td align="right">210</td>
 </tr>
 </tbody>
@@ -808,31 +1018,31 @@ vars.stats[[<span class="dv">185</span>]]</code></pre></div>
 <pre><code>## Error in ols_summary(dset.sum = EuStockMarkets, target.sum = rep(&quot;DAX&quot;, : Variable(s):
 ##  Nonexistent.Variable1, Nonexistent.Variable2
 ##  is/are not in the data set.</code></pre>
-<h3 id="parallelization">2.5 Parallelization</h3>
+<h3 id="parallelization">2.6 Parallelization</h3>
 <p>We can parallelize our computations by using <code>do.parallel</code> argument. By default, the number of used cores is the <code>maximum.number.of.cores - 2</code>. This variable can be controlled by <code>n.cores</code>:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">models &lt;-<span class="st"> </span><span class="kw">ols_summary</span>(<span class="dt">dset.sum =</span> EuStockMarkets,
                       <span class="dt">target.sum =</span> <span class="kw">rep</span>(<span class="st">&quot;DAX&quot;</span>, n.models),
                       <span class="dt">vars.sum =</span> vars,
-                      <span class="dt">do.parallel =</span> T,
+                      <span class="dt">do.parallel =</span> <span class="ot">TRUE</span>,
                       <span class="dt">n.cores =</span> <span class="dv">2</span>)</code></pre></div>
 <p>Parallelization is turned off by default.</p>
-<h3 id="benchmark-of-parallelized-and-non-parallelized-computations">2.6 Benchmark of parallelized and non-parallelized computations</h3>
-<p>Do parallelized calculations actually execute faster than non-parallelized ones? In order to check it, the library <code>microbenchmark</code> was used, i.e. each function was ran 100 times. The comparison includes running the same calculations on one, two and three cores:</p>
+<h3 id="benchmark-of-parallelized-and-non-parallelized-computations">2.7 Benchmark of parallelized and non-parallelized computations</h3>
+<p>Do parallelized calculations actually execute faster than non-parallelized ones? In order to check it, the library <code>microbenchmark</code> was once again used. The comparison includes running the same calculations on one, two and three cores:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">mbm &lt;-<span class="st"> </span><span class="kw">microbenchmark</span>(
   <span class="st">&quot;not.parallelized&quot;</span>  =<span class="st"> </span>{models &lt;-<span class="st"> </span><span class="kw">ols_summary</span>(<span class="dt">dset.sum =</span> EuStockMarkets,
                                                <span class="dt">target.sum =</span> <span class="kw">rep</span>(<span class="st">&quot;DAX&quot;</span>, n.models),
                                                <span class="dt">vars.sum =</span> vars,
-                                               <span class="dt">do.parallel =</span> F,
-                                               <span class="dt">progress.bar =</span> F)},
+                                               <span class="dt">do.parallel =</span> <span class="ot">FALSE</span>,
+                                               <span class="dt">progress.bar =</span> <span class="ot">FALSE</span>)},
   <span class="st">&quot;parallelized.2.cores&quot;</span> =<span class="st"> </span>{models &lt;-<span class="st"> </span><span class="kw">ols_summary</span>(<span class="dt">dset.sum =</span> EuStockMarkets,
                                           <span class="dt">target.sum =</span> <span class="kw">rep</span>(<span class="st">&quot;DAX&quot;</span>, n.models),
                                           <span class="dt">vars.sum =</span> vars,
-                                          <span class="dt">do.parallel =</span> T,
+                                          <span class="dt">do.parallel =</span> <span class="ot">TRUE</span>,
                                           <span class="dt">n.cores =</span> <span class="dv">2</span>)},
   <span class="st">&quot;parallelized.3.cores&quot;</span> =<span class="st"> </span>{models &lt;-<span class="st"> </span><span class="kw">ols_summary</span>(<span class="dt">dset.sum =</span> EuStockMarkets,
                                                   <span class="dt">target.sum =</span> <span class="kw">rep</span>(<span class="st">&quot;DAX&quot;</span>, n.models),
                                                   <span class="dt">vars.sum =</span> vars,
-                                                  <span class="dt">do.parallel =</span> T,
+                                                  <span class="dt">do.parallel =</span> <span class="ot">TRUE</span>,
                                                   <span class="dt">n.cores =</span> <span class="dv">3</span>)})</code></pre></div>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">mbm</code></pre></div>
 <p>The table below presents statistic (mean, median etc.) of time required to execute a function (in seconds):</p>
@@ -908,20 +1118,19 @@ mbm2 &lt;-<span class="st"> </span><span class="kw">microbenchmark</span>(
   <span class="st">&quot;not.parallelized&quot;</span>  =<span class="st"> </span>{models &lt;-<span class="st"> </span><span class="kw">ols_summary</span>(<span class="dt">dset.sum =</span> EuStockMarkets,
                                                <span class="dt">target.sum =</span> <span class="kw">rep</span>(<span class="st">&quot;DAX&quot;</span>, n.models2),
                                                <span class="dt">vars.sum =</span> vars2,
-                                               <span class="dt">do.parallel =</span> F,
-                                               <span class="dt">progress.bar =</span> F)},
+                                               <span class="dt">do.parallel =</span> <span class="ot">FALSE</span>,
+                                               <span class="dt">progress.bar =</span> <span class="ot">FALSE</span>)},
   <span class="st">&quot;parallelized.2.cores&quot;</span> =<span class="st"> </span>{models &lt;-<span class="st"> </span><span class="kw">ols_summary</span>(<span class="dt">dset.sum =</span> EuStockMarkets,
                                           <span class="dt">target.sum =</span> <span class="kw">rep</span>(<span class="st">&quot;DAX&quot;</span>, n.models2),
                                           <span class="dt">vars.sum =</span> vars2,
-                                          <span class="dt">do.parallel =</span> T,
+                                          <span class="dt">do.parallel =</span> <span class="ot">TRUE</span>,
                                           <span class="dt">n.cores =</span> <span class="dv">2</span>)},
   <span class="st">&quot;parallelized.3.cores&quot;</span> =<span class="st"> </span>{models &lt;-<span class="st"> </span><span class="kw">ols_summary</span>(<span class="dt">dset.sum =</span> EuStockMarkets,
                                                   <span class="dt">target.sum =</span> <span class="kw">rep</span>(<span class="st">&quot;DAX&quot;</span>, n.models2),
                                                   <span class="dt">vars.sum =</span> vars2,
-                                                  <span class="dt">do.parallel =</span> T,
+                                                  <span class="dt">do.parallel =</span> <span class="ot">TRUE</span>,
                                                   <span class="dt">n.cores =</span> <span class="dv">3</span>)},
-  <span class="dt">times =</span> <span class="dv">30</span>)
-mbm2</code></pre></div>
+  <span class="dt">times =</span> <span class="dv">30</span>)</code></pre></div>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">mbm2</code></pre></div>
 <table>
 <thead>
