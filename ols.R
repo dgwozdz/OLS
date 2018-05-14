@@ -2,7 +2,7 @@
 # Author:             Damian Gwozdz (DG)
 # Function:           ols
 # Creation date:      15JUN2017
-# Last modified:      28JAN2018
+# Last modified:      14MAY2018
 # Description:        Function to build an Ordinary
 #                     Least Squares models and test it
 # Required functions: PRESS, pred_r_squared
@@ -109,7 +109,7 @@ ols <- function(dset, target, vars, alpha = .05, intercept = TRUE,
   
   dset <- dset[complete.cases(dset),]
   
-  intercept.string <- if(intercept == T){""}else{"-1"}
+  intercept.string <- if(intercept){""}else{"-1"}
   ols.formula <- as.formula(paste0(target, "~", gsub(" ", "+", vars), intercept.string))
   model.original <- lm(formula = ols.formula, data = dset)
   model <- summary(model.original)
@@ -210,23 +210,24 @@ ols <- function(dset, target, vars, alpha = .05, intercept = TRUE,
     }
   }
   
-  model.stats$significance <- if(max(model.vars$p.value<=alpha)) T else F
+  model.stats$significance <- if(max(model.vars$p.value<=alpha)) TRUE else FALSE
   model.stats$max.p.value <- max(model.vars$p.value)
-  model.stats$max.vif <- if(length(vars.split) == 1)NA else max(model.vars$vif, na.rm = T)
+  model.stats$max.vif <- if(length(vars.split) == 1)NA else max(model.vars$vif,
+                                                                na.rm = TRUE)
   
   if(intercept){
-    model.stats$tests <- if(model.stats$bp.p.value<alpha &
-                            model.stats$bg.p.value<alpha &
-                            model.stats$reset.p.value<alpha &
-                            model.stats$ad.p.value<alpha &
-                            model.stats$sw.p.value<alpha &
-                            model.stats$chow.p.value<alpha)T else F
+    model.stats$tests <- if(model.stats$bp.p.value>alpha &
+                            model.stats$bg.p.value>alpha &
+                            model.stats$reset.p.value>alpha &
+                            model.stats$ad.p.value>alpha &
+                            model.stats$sw.p.value>alpha &
+                            model.stats$chow.p.value>alpha)T else F
   }else{
-    model.stats$tests <- if(model.stats$bg.p.value<alpha &
-                            model.stats$reset.p.value<alpha &
-                            model.stats$ad.p.value<alpha &
-                            model.stats$sw.p.value<alpha &
-                            model.stats$chow.p.value<alpha)T else F
+    model.stats$tests <- if(model.stats$bg.p.value>alpha &
+                            model.stats$reset.p.value>alpha &
+                            model.stats$ad.p.value>alpha &
+                            model.stats$sw.p.value>alpha &
+                            model.stats$chow.p.value>alpha)TRUE else FALSE
   }
   
   model.stats$n <- nrow(dset)
@@ -237,7 +238,7 @@ ols <- function(dset, target, vars, alpha = .05, intercept = TRUE,
     
     dset$predicted <- predict(model.original, dset)
     
-    if(time.series == TRUE | length(time.var)>0){
+    if(time.series | length(time.var)>0){
       model.plot <- ggplot(dset, aes_string(x="predicted", y=target)) +
         geom_point(shape=19, color = "purple") +
         xlab("Predicted") +

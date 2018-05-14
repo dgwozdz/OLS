@@ -2,7 +2,7 @@
 # Author:             Damian Gwozdz (DG)
 # Function:           combs
 # Creation date:      30AUG2017
-# Last modified:      31AUG2017
+# Last modified:      14MAY2018
 # Description:        Function to create all possible combinations
 #                     from a given vector of strings including their
 #                     lags
@@ -56,12 +56,12 @@ ncomb <- function(vec, m = 1, n, max.lag){
     # If variable name is "Diff.GDP.3" then the function returns
     # "Diff.GDP"
 
-    vect <- if(grepl('Diff.', vect)==T){
+    vect <- if(grepl('Diff.', vect)){
       c(substring(vect, 1,
                   which(unlist(strsplit(vect, "")) == ".")[
                     length(which(unlist(strsplit(vect, "")) == "."))
                   ]-1))
-      }else if(grepl('Rel.diff.', vect)==T){
+      }else if(grepl('Rel.diff.', vect)){
       c(substring(vect, 1,
                   which(unlist(strsplit(vect, "")) == ".")[
                     length(which(unlist(strsplit(vect, "")) == "."))
@@ -70,14 +70,14 @@ ncomb <- function(vec, m = 1, n, max.lag){
     
     return(vect)
   }
-  vec <- vapply(vec, cut.diff.order, "", USE.NAMES = F)
+  vec <- vapply(vec, cut.diff.order, "", USE.NAMES = FALSE)
   
   ## All combinations without lags
 
   combs <- c()
   for(i in m:n){
     combs <-c(combs,
-              sapply(combn(vec, i, simplify = F), paste0, collapse = " "))
+              sapply(combn(vec, i, simplify = FALSE), paste0, collapse = " "))
   }
   
   if(max.lag == 0){

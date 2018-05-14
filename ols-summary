@@ -1,0 +1,16 @@
+memory profiling: GC profiling: line profiling: sample.interval=10000
+:1759216:1928064:138469184:0:"doTryCatch" "tryCatchOne" "tryCatchList" "tryCatch" "profvis" 
+:1759216:1928064:138469184:0:"doTryCatch" "tryCatchOne" "tryCatchList" "tryCatch" "profvis" 
+:1759216:1928064:138469184:0:"doTryCatch" "tryCatchOne" "tryCatchList" "tryCatch" "profvis" 
+:1759216:1928064:138469184:0:"doTryCatch" "tryCatchOne" "tryCatchList" "tryCatch" "profvis" 
+:1759216:1928064:138469184:0:"doTryCatch" "tryCatchOne" "tryCatchList" "tryCatch" "profvis" 
+:1759216:1928064:138469184:0:"doTryCatch" "tryCatchOne" "tryCatchList" "tryCatch" "profvis" 
+#File 1: ols_summary.R
+#File 2: <expr>
+:1765785:1928490:139208328:669:".External2" "winProgressBar" 1#94 "ols_summary" 2#2 "force" "doTryCatch" "tryCatchOne" "tryCatchList" "doTryCatch" "tryCatchOne" "tryCatchList" "tryCatch" "profvis" 
+#File 3: ols.r
+:1766389:1942629:139340600:87:"model.frame.default" "stats::model.frame" "eval" "eval" "lm" 3#114 "ols" 1#97 "ols_summary" 2#2 "force" "doTryCatch" "tryCatchOne" "tryCatchList" "doTryCatch" "tryCatchOne" "tryCatchList" "tryCatch" "profvis" 
+:1781926:2019805:141241632:1410:"is.na" 3#143 "FUN" "apply" "[.data.frame" 3#140 "[" 3#140 "mean" "RMSE" 3#140 "ols" 1#97 "ols_summary" 2#2 "force" "doTryCatch" "tryCatchOne" "tryCatchList" "doTryCatch" "tryCatchOne" "tryCatchList" "tryCatch" "profvis" 
+:1801667:2120765:144069912:1783:".External2" "model.matrix.default" "model.matrix" "bptest" 3#168 "ols" 1#97 "ols_summary" 2#2 "force" "doTryCatch" "tryCatchOne" "tryCatchList" "doTryCatch" "tryCatchOne" "tryCatchList" "tryCatch" "profvis" 
+:1805795:2331381:144779320:513:"anyDuplicated.default" "anyDuplicated" "[.data.frame" "[" "na.omit.data.frame" "na.omit" ".External2" "model.frame.default" "stats::model.frame" "eval" "eval" "model.frame.default" "model.frame" "resettest" 3#177 "ols" 1#97 "ols_summary" 2#2 "force" "doTryCatch" "tryCatchOne" "tryCatchList" "doTryCatch" "tryCatchOne" "tryCatchList" "tryCatch" "profvis" 
+:1814875:2551814:146067768:462:".External2" "model.matrix.default" "model.matrix" "sctest.formula" "sctest" 3#189 "ols" 1#97 "ols_summary" 2#2 "force" "doTryCatch" "tryCatchOne" "tryCatchList" "doTryCatch" "tryCatchOne" "tryCatchList" "tryCatch" "profvis" 

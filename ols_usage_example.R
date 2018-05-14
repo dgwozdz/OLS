@@ -13,12 +13,13 @@ setwd('..')
 
 library(datasets)
 library(utils)
+library(RcppEigen)
 data(EuStockMarkets)
 
-functions <- c("ols.R", "ols_summary.R", "ncomb.R",
+functions <- c("PRESS.R", "pred_r_squared.R",
+               "ols.R", "ols_summary.R", "ncomb.R",
                "lags.R", "difs.R")
 sapply(functions, source)
-
 model1 <- ols(dset = EuStockMarkets,
               target = "DAX",
               vars = "SMI CAC FTSE")
@@ -36,16 +37,19 @@ model1[["plot"]] # plot
 model1 <- ols(dset = EuStockMarkets,
                 target = "DAX",
                 vars = "SMI CAC FTSE",
-                visualize = T,
-                output.residuals = T)
-model1[["output.residuals"]] # plot
+                visualize = TRUE,
+                output.residuals = TRUE)
+qplot(model1[["output.residuals"]]) +
+  theme_minimal() +
+  xlab('') +
+  ggtitle("Residuals") # plot
 
 # Change p-value
 
 model1 <- ols(dset = EuStockMarkets,
               target = "DAX",
               vars = "SMI CAC FTSE",
-              time.series  = T,
+              time.series  = TRUE,
               alpha = 0.1)
 
 model1["var.stats"]
@@ -55,7 +59,7 @@ model1["var.stats"]
 model1 <- ols(dset = EuStockMarkets,
               target = "DAX",
               vars = "CAC FTSE",
-              time.series  = T,
+              time.series  = TRUE,
               alpha = 0.1)
 
 model1["var.stats"] # both are statistically significant, VIF<10
@@ -65,16 +69,60 @@ model1["var.stats"] # both are statistically significant, VIF<10
 model1 <- ols(dset = EuStockMarkets,
               target = "DAX",
               vars = "SMI CAC FTSE",
-              time.series  = T)
-class(EuStockMarkets)
+              time.series  = TRUE,
+              visualize = TRUE)
 
+# Another way of visualizing time series: obtaining time from "mts" class
+
+date <- as.yearmon(time(EuStockMarkets))
+EuStockMarkets <- as.data.frame(EuStockMarkets)
+EuStockMarkets$date <- date
+
+model1 <- ols(dset = EuStockMarkets,
+              target = "DAX",
+              vars = "SMI CAC FTSE",
+              time.var  = "date",
+              visualize = TRUE)
+model1$time.plot
+model1$plot
+
+# No intercept
+
+model1 <- ols(dset = EuStockMarkets,
+              target = "DAX",
+              vars = "SMI CAC FTSE",
+              intercept = FALSE)
+
+# Predicted R-Squared
+
+model1 <- ols(dset = EuStockMarkets,
+              target = "DAX",
+              vars = "SMI CAC FTSE",
+              pred.R2 = TRUE)
+model1[["stats"]]
+model1[["var.stats"]]
+
+# Comparison: pred.R2 turned on and off
+
+mbm.pred.R2 <- microbenchmark(
+  "pred.R2"  = {model1 <- ols(dset = EuStockMarkets,
+                                        target = "DAX",
+                                        vars = "SMI CAC FTSE",
+                                        pred.R2 = TRUE)},
+  "no.pred.R2" = {model1 <- ols(dset = EuStockMarkets,
+                                          target = "DAX",
+                                          vars = "SMI CAC FTSE",
+                                          pred.R2 = FALSE)})
+mbm.pred.R2 <- summary(mbm.pred.R2)
+save(mbm.pred.R2, file = "mbm_pred_R2_29012018.RData")
+class(mbm.pred.R2)
+# load("mbm_pred_R2_29012018.RData")
 ### Multiple models----
 
 vars <- ncomb(vec = c("SMI", "CAC", "FTSE"),
               m = 1,
               n = 3,
               max.lag = 0)
-vars
 
 # Multiple combinations
 
@@ -95,10 +143,10 @@ EuStockMarkets <- lags(dset = EuStockMarkets,
 models <- ols_summary(dset.sum = EuStockMarkets,
                       target.sum = rep("DAX", n.models),
                       vars.sum = vars,
-                      do.parallel = T)
+                      do.parallel = FALSE, intercept.sum = FALSE)
 models.stats <- models[[1]]
-head(models.stats[order(models.stats$adjusted.R2, decreasing = T),])
-head(models.stats[order(models.stats$adjusted.R2, decreasing = T), "model.num"])
+head(models.stats[order(models.stats$adjusted.R2, decreasing = TRUE),])
+head(models.stats[order(models.stats$adjusted.R2, decreasing = TRUE), "model.num"])
 
 models$vars.stats[185]
 
@@ -113,16 +161,22 @@ mbm <- microbenchmark(
   "not.parallelized"  = {models <- ols_summary(dset.sum = EuStockMarkets,
                                                target.sum = rep("DAX", n.models),
                                                vars.sum = vars,
-                                               do.parallel = F,
-                                               progress.bar = F)},
-  "parallelized" = {models <- ols_summary(dset.sum = EuStockMarkets,
+                                               do.parallel = FALSE,
+                                               progress.bar = FALSE)},
+  "parallelized.2.cores" = {models <- ols_summary(dset.sum = EuStockMarkets,
                                           target.sum = rep("DAX", n.models),
                                           vars.sum = vars,
-                                          do.parallel = T)})
+                                          do.parallel = TRUE,
+                                          n.cores = 2)},
+  "parallelized.3.cores" = {models <- ols_summary(dset.sum = EuStockMarkets,
+                                                  target.sum = rep("DAX", n.models),
+                                                  vars.sum = vars,
+                                                  do.parallel = TRUE,
+                                                  n.cores = 3)})
 mbm
-save(mbm, file = "mbm_16cols_21012018.RData")
-
-
+save(mbm, file = "mbm_16cols_26012018.RData")
+# load("mbm_16cols_26012018.RData")
+gc()
 ## Larger number of variables
 
 vars2 <- ncomb(vec = c("SMI", "CAC", "FTSE"),
@@ -139,15 +193,21 @@ mbm2 <- microbenchmark(
   "not.parallelized"  = {models <- ols_summary(dset.sum = EuStockMarkets,
                                                target.sum = rep("DAX", n.models2),
                                                vars.sum = vars2,
-                                               do.parallel = F,
-                                               progress.bar = F)},
-  "parallelized" = {models <- ols_summary(dset.sum = EuStockMarkets,
+                                               do.parallel = FALSE,
+                                               progress.bar = FALSE)},
+  "parallelized.2.cores" = {models <- ols_summary(dset.sum = EuStockMarkets,
                                           target.sum = rep("DAX", n.models2),
                                           vars.sum = vars2,
-                                          do.parallel = T)},
-  times = 10)
+                                          do.parallel = T,
+                                          n.cores = 2)},
+  "parallelized.3.cores" = {models <- ols_summary(dset.sum = EuStockMarkets,
+                                                  target.sum = rep("DAX", n.models2),
+                                                  vars.sum = vars2,
+                                                  do.parallel = TRUE,
+                                                  n.cores = 3)},
+  times = 30)
 mbm2
-save(mbm2, file = "mbm_52cols_21012018.RData")
+save(mbm2, file = "mbm_52cols_26012018.RData")
 
 
 
@@ -163,7 +223,7 @@ n.models.dif <- length(vars.dif)
 models <- ols_summary(dset.sum = EuStockMarkets,
                       target.sum = rep("DAX", n.models.dif),
                       vars.sum = vars.dif,
-                      progress.bar = T)
+                      progress.bar = TRUE)
 
 
 # What if a variables is not in the data set?
@@ -172,5 +232,5 @@ models <- ols_summary(dset.sum = EuStockMarkets,
                       target.sum = rep("DAX", n.models),
                       vars.sum = c("Nonexistent.Variable1",
                                    "Nonexistent.Variable2", vars),
-                      do.parallel = F,
-                      progress.bar = T)
+                      do.parallel = FALSE,
+                      progress.bar = TRUE)

@@ -2,7 +2,7 @@
 # Author:             Damian Gwozdz (DG)
 # Function:           ols
 # Creation date:      15JUN2017
-# Last modified:      28JAN2018
+# Last modified:      14MAY2018
 # Description:        Function to build multiple Ordinary
 #                     Least Squares models in a parallelized way
 # Required functions: ols
